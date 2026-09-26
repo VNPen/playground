@@ -31,6 +31,8 @@ interface Item {
   title: string;
   sub: string;
   badge: string;
+  /** Full name shown on hover. */
+  hint?: string;
   state?: string;
   icon?: "cloud" | "file";
 }
@@ -44,10 +46,14 @@ function useItems(): Item[] {
   const items: Item[] = [];
   const own = models.find((m) => m.role === role && m.files.some((f) => f.active));
   if (own && hasInstalled(models, role)) {
+    // "v0.1-preview-GGUF" → title "v0.1", subtitle "preview-GGUF".
+    const m = (own.version ?? "").match(/^(v\d+(?:\.\d+)*)-?(.*)$/i);
+    const quant = own.files.find((f) => f.active)?.quant;
     items.push({
       id: "vnpen",
-      title: role === "writer" ? "Writer" : "Realtime",
-      sub: `${own.version ?? ""} · ${own.files.find((f) => f.active)?.quant ?? ""}`,
+      title: m?.[1] ?? own.version ?? (role === "writer" ? "Writer" : "Realtime"),
+      sub: m?.[2] || own.version || "",
+      hint: `${own.display_name}${quant ? ` · ${quant}` : ""}`,
       badge: own.params ?? "—",
       state: st?.state,
     });
@@ -105,6 +111,7 @@ function ModelList() {
             role="option"
             aria-selected={active}
             onClick={() => setProvider(tab, it.id)}
+            title={it.hint}
             className={clsx(
               "group rounded-xl border px-3 py-2.5 text-left transition-colors",
               active ? "border-brand bg-brand-soft" : "border-line bg-card hover:border-line-strong",
