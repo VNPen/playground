@@ -1,0 +1,131 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-sidebar: var(--sidebar);
+  --color-card: var(--card);
+  --color-sunken: var(--sunken);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg2: var(--fg2);
+  --color-muted: var(--muted);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-soft-2: var(--brand-soft-2);
+  --color-on-brand: var(--on-brand);
+  --color-err: var(--err);
+  --color-err-soft: var(--err-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-narration: var(--narration);
+  --color-ghost: var(--ghost);
+  --color-user-bubble: var(--user-bubble);
+  --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+  --font-mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  --shadow-card: var(--shadow);
+  --shadow-pop: var(--shadow-lg);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+::selection {
+  background: var(--brand-soft-2);
+}
+
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+/* Realtime editor: a transparent textarea over a styled mirror. Both must share metrics. */
+.editor-metrics {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 28px;
+  letter-spacing: 0.01em;
+  padding: 2px 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.editor-input {
+  color: transparent;
+  caret-color: var(--fg);
+  background: transparent;
+  resize: none;
+  border: 0;
+  outline: none;
+  overflow: hidden;
+}
+
+.editor-input::selection {
+  background: var(--brand-soft-2);
+  color: transparent;
+}
+
+.issue-high {
+  text-decoration: underline solid var(--err);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+}
+
+.issue-low {
+  text-decoration: underline dashed var(--warn);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+}
+
+.issue-active {
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+  border-radius: 3px;
+}
+
+@keyframes flash-row {
+  0% { background: var(--brand-soft-2); }
+  100% { background: transparent; }
+}
+
+.flash {
+  animation: flash-row 1.2s ease-out;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+.caret-blink {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -2px;
+  background: var(--brand);
+  animation: blink 1s steps(1) infinite;
+}

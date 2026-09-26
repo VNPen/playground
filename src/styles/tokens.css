@@ -1,0 +1,142 @@
+/* VNPen 色卡 — 主色 #3F3A9E。用途见 README「色卡」。 */
+:root {
+  /* 主色阶 */
+  --brand-50: #eeedf8;
+  --brand-100: #dcdaf1;
+  --brand-200: #bab6e3;
+  --brand-300: #9591d3;
+  --brand-400: #706bc2;
+  --brand-500: #5550b2;
+  --brand-600: #3f3a9e;
+  --brand-700: #332f82;
+  --brand-800: #282566;
+  --brand-900: #1a1842;
+
+  /* 表面与文字 */
+  --bg: #f7f6fb;
+  --sidebar: #f1f0f8;
+  --card: #ffffff;
+  --sunken: #f4f3fa;
+  --line: #e4e2f0;
+  --line-strong: #d3d0e6;
+  --fg: #1e1c3a;
+  --fg2: #5b5878;
+  --muted: #8c89a6;
+
+  /* 交互 */
+  --brand: var(--brand-600);
+  --brand-hover: var(--brand-700);
+  --brand-soft: var(--brand-50);
+  --brand-soft-2: var(--brand-100);
+  --on-brand: #ffffff;
+  --focus: rgba(63, 58, 158, 0.35);
+  --user-bubble: var(--brand-50);
+
+  /* 语义色 */
+  --err: #d64545;
+  --err-soft: #fdecec;
+  --warn: #c98a12;
+  --warn-soft: #fdf4e1;
+  --ok: #2e8b57;
+  --ok-soft: #e5f4ec;
+  --info: #3b6fd9;
+  --info-soft: #e8effc;
+
+  /* 说话人（按出场顺序循环） */
+  --spk-1: #b4466b;
+  --spk-2: #2f7d8c;
+  --spk-3: #a8661a;
+  --spk-4: #6a4fb6;
+  --spk-5: #3b7a3e;
+  --spk-6: #a34e2e;
+  --spk-7: #2d5da8;
+  --spk-8: #8a5a8c;
+  --narration: #6f6c8c;
+  --ghost: #a9a6c2;
+
+  --shadow: 0 1px 2px rgba(26, 24, 66, 0.06), 0 4px 16px rgba(26, 24, 66, 0.06);
+  --shadow-lg: 0 8px 32px rgba(26, 24, 66, 0.16);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12112b;
+    --sidebar: #17163a;
+    --card: #1c1a40;
+    --sunken: #16153a;
+    --line: #2e2b5c;
+    --line-strong: #3d3a73;
+    --fg: #ecebfa;
+    --fg2: #b4b1d6;
+    --muted: #7f7ca8;
+    --brand: #8d88e0;
+    --brand-hover: #a39fe8;
+    --brand-soft: #262357;
+    --brand-soft-2: #302c6b;
+    --on-brand: #12112b;
+    --focus: rgba(141, 136, 224, 0.4);
+    --user-bubble: #262357;
+    --err: #f07878;
+    --err-soft: #3a1c2a;
+    --warn: #e8b451;
+    --warn-soft: #362b1a;
+    --ok: #5cc28a;
+    --ok-soft: #173327;
+    --info: #7ea4f0;
+    --info-soft: #1b2a4d;
+    --spk-1: #e889a8;
+    --spk-2: #6cc3d1;
+    --spk-3: #e3a55c;
+    --spk-4: #ad96ee;
+    --spk-5: #82c486;
+    --spk-6: #e48d6c;
+    --spk-7: #7ea4f0;
+    --spk-8: #cc9ad0;
+    --narration: #a09dc4;
+    --ghost: #625f8c;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #12112b;
+  --sidebar: #17163a;
+  --card: #1c1a40;
+  --sunken: #16153a;
+  --line: #2e2b5c;
+  --line-strong: #3d3a73;
+  --fg: #ecebfa;
+  --fg2: #b4b1d6;
+  --muted: #7f7ca8;
+  --brand: #8d88e0;
+  --brand-hover: #a39fe8;
+  --brand-soft: #262357;
+  --brand-soft-2: #302c6b;
+  --on-brand: #12112b;
+  --focus: rgba(141, 136, 224, 0.4);
+  --user-bubble: #262357;
+  --err: #f07878;
+  --err-soft: #3a1c2a;
+  --warn: #e8b451;
+  --warn-soft: #362b1a;
+  --ok: #5cc28a;
+  --ok-soft: #173327;
+  --info: #7ea4f0;
+  --info-soft: #1b2a4d;
+  --spk-1: #e889a8;
+  --spk-2: #6cc3d1;
+  --spk-3: #e3a55c;
+  --spk-4: #ad96ee;
+  --spk-5: #82c486;
+  --spk-6: #e48d6c;
+  --spk-7: #7ea4f0;
+  --spk-8: #cc9ad0;
+  --narration: #a09dc4;
+  --ghost: #625f8c;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+}

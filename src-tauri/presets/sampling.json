@@ -1,0 +1,10 @@
+{
+  "temperature": 0.8,
+  "top_p": 0.95,
+  "top_k": 40,
+  "repeat_penalty": 1.1,
+  "repeat_last_n": 256,
+  "max_tokens": 1024,
+  "stop": ["<|im_end|>", "<|endoftext|>"],
+  "ctx": 4096
+}

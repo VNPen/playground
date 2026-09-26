@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "models": [
+    {
+      "id": "vnpen-writer-2b-v0.1-preview",
+      "name": "vnpen-writer",
+      "display_name": "vnpen-writer-2b-v0.1-preview-GGUF",
+      "role": "writer",
+      "status": "released",
+      "params": "2B",
+      "repo": "VNPen/vnpen-writer-2b-v0.1-preview-GGUF",
+      "files": [
+        {
+          "file": "writer-2b-preview-Q8_0.gguf",
+          "quant": "Q8_0",
+          "recommended": true,
+          "note": "推荐",
+          "sha256": "b65de0a20f0461539b81870e5bcf079fb84644f545eb3a6d33415128c1121000",
+          "size": 2012005440
+        },
+        {
+          "file": "writer-2b-preview-Q4_K_M.gguf",
+          "quant": "Q4_K_M",
+          "recommended": false,
+          "note": "省内存",
+          "sha256": "eea18c0cb3ee1983c7525be178be641d53a787b0dc060d6a0216eaa321c92633",
+          "size": 1274389792
+        }
+      ]
+    },
+    {
+      "id": "vnpen-realtime",
+      "name": "vnpen-realtime",
+      "display_name": "vnpen-realtime",
+      "role": "realtime",
+      "status": "not_released",
+      "params": null,
+      "repo": null,
+      "files": []
+    }
+  ]
+}

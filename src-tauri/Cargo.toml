@@ -1,0 +1,40 @@
+[package]
+name = "vnpen-playground"
+version = "0.1.0"
+description = "VNPen Playground"
+authors = ["MewBaka"]
+license = "Apache-2.0"
+edition = "2021"
+
+[lib]
+name = "vnpen_playground_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-store = "2"
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+vnpen-engine = { path = "src/engine" }
+
+[workspace]
+members = [".", "src/engine"]
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+
+# Hashing multi-GB models is unbearably slow unoptimized; keep it fast in dev builds too.
+[profile.dev.package.sha2]
+opt-level = 3
+
+[profile.dev.package.digest]
+opt-level = 3

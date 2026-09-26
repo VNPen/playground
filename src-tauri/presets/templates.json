@@ -1,0 +1,8 @@
+{
+  "continue": "{{characters}}{{lines}}",
+  "proofread": "校对以下剧本，每个问题输出一行 JSON：{\"line\": 行号, \"category\": \"typo|grammar\", \"from\": 原片段, \"to\": 修正片段}。没有问题则不输出。\n{{numbered_lines}}",
+  "rewrite_light": "轻度改写以下剧本，保持行数、说话人与剧情不变，只润色措辞：\n{{lines}}",
+  "rewrite_heavy": "重写以下剧本，保持说话人与剧情走向，可调整节奏与措辞：\n{{lines}}",
+  "brief": "{{request}}\n{{characters}}{{length}}{{extra}}",
+  "chat_extra": "{{message}}\n{{characters}}{{extra}}"
+}

@@ -1,0 +1,5 @@
+# Optional grammar for script-only endpoints: one or more 「说话人：文本」 lines.
+root    ::= line+
+line    ::= speaker "：" text "\n"
+speaker ::= [^：\n]{1,16}
+text    ::= [^\n]+
