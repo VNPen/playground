@@ -50,10 +50,11 @@ export default function App() {
 
   return (
     <Tooltip.Provider>
-      <div className="flex h-full">
+      <div className="flex h-full flex-col">
+        <TopBar />
+        <div className="flex min-h-0 flex-1">
         <LeftSidebar />
         <main className="flex min-w-0 flex-1 flex-col">
-          <TopBar />
           {ready && engine?.error && (
             <div role="alert" className="border-b border-err/30 bg-err-soft px-5 py-2 text-[13px] text-err">
               任务层未启动：{engine.error}
@@ -69,6 +70,7 @@ export default function App() {
           </div>
         </main>
         <RightSidebar />
+        </div>
       </div>
       <SettingsDialog />
     </Tooltip.Provider>

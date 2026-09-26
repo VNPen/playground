@@ -1,7 +1,8 @@
 import clsx from "clsx";
 import { Minus, Monitor, Moon, Plus, RotateCcw, Settings2, Square, Sun, X } from "lucide-react";
 import { isTauri } from "../../api/client";
-import { CUSTOM_CONTROLS } from "../../lib/platform";
+import { CUSTOM_CONTROLS, MAC_OVERLAY } from "../../lib/platform";
+import { Logo } from "./LeftSidebar";
 import { useApp, type Tab, type Theme } from "../../stores/app";
 import { useChat } from "../../stores/chat";
 import { useEditor } from "../../stores/editor";
@@ -90,7 +91,12 @@ export function TopBar() {
   const openSettings = useApp((s) => s.openSettings);
   const resetParams = useParams((s) => s.reset);
   return (
-    <header data-tauri-drag-region className="flex h-14 shrink-0 select-none items-center justify-between border-b border-line bg-card px-4">
+    <header data-tauri-drag-region className="flex h-14 shrink-0 select-none items-center border-b border-line bg-card">
+      {/* Same width as the left sidebar; on macOS the traffic lights sit before the logo. */}
+      <div data-tauri-drag-region className={clsx("flex h-full w-[248px] shrink-0 items-center border-r border-line", MAC_OVERLAY ? "pl-[84px]" : "pl-5")}>
+        <Logo />
+      </div>
+      <div data-tauri-drag-region className="flex min-w-0 flex-1 items-center justify-between px-4">
       <Segmented
         label="模式"
         value={tab}
@@ -119,6 +125,7 @@ export function TopBar() {
           <GithubMark className="h-4 w-4" />
         </IconButton>
         {CUSTOM_CONTROLS && <WindowControls />}
+      </div>
       </div>
     </header>
   );

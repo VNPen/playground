@@ -2,16 +2,15 @@ import clsx from "clsx";
 import { Cpu, Download, Globe, HardDrive, Plus, RefreshCw, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { api } from "../../api/client";
-import { MAC_OVERLAY } from "../../lib/platform";
 import { TaskCard } from "./TaskCard";
 import { hasInstalled, useApp } from "../../stores/app";
 import { mb } from "../../lib/format";
 import { Badge, Dot, Spinner, Tip } from "../common/ui";
 
-function Logo() {
+export function Logo() {
   return (
     <div className="flex items-center gap-2 px-1" aria-label="VNPen Playground">
-      <span className="text-[26px] font-extrabold leading-none tracking-tight text-brand">VNPen</span>
+      <span className="text-[22px] font-extrabold leading-none tracking-tight text-brand">VNPen</span>
       <span className="rounded-md bg-brand px-1.5 py-1 text-[11px] font-semibold leading-none tracking-wide text-on-brand">Playground</span>
     </div>
   );
@@ -171,12 +170,12 @@ function EngineCard() {
   return (
     <div className="rounded-xl border border-line bg-card p-3 text-xs">
       <div className="flex items-center justify-between">
-        <span className="flex items-center gap-1.5 text-[13px] font-medium text-fg">
+        <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-[13px] font-medium text-fg">
           <Dot tone={tone} />
-          {headline}
+          <span className="truncate">{headline}</span>
         </span>
         <Tip label="停止全部推理进程；下次请求时自动重新加载">
-          <button onClick={restart} disabled={busy || !engine?.port} className="flex items-center gap-1 text-fg2 hover:text-brand disabled:opacity-50" aria-label="重启推理引擎">
+          <button onClick={restart} disabled={busy || !engine?.port} className="flex shrink-0 items-center gap-1 whitespace-nowrap text-fg2 hover:text-brand disabled:opacity-50" aria-label="重启推理引擎">
             {busy ? <Spinner /> : <RefreshCw className="h-3 w-3" />} 重启
           </button>
         </Tip>
@@ -184,19 +183,21 @@ function EngineCard() {
       <div className="mt-2 space-y-1 text-fg2">
         <div>任务层端口 {engine?.port || "—"}</div>
         {procs.map((p) => (
-          <div key={p.key} className="flex items-center justify-between">
+          <div key={p.key} className="flex items-center justify-between gap-2 whitespace-nowrap">
             <span className="truncate">{procName(p.key)}</span>
-            <span className="text-muted">
+            <span className="shrink-0 text-muted">
               {PHASE[p.phase.phase]?.label}
               {p.phase.phase === "running" ? ` · :${p.port}` : ""}
             </span>
           </div>
         ))}
         {hw && (
-          <div className="flex items-center gap-1 text-muted">
-            <Cpu className="h-3 w-3" />
-            RAM {mb(hw.ram_used_mb)} / {mb(hw.ram_mb)}
-            {hw.engine_rss_mb > 0 && ` · 引擎 ${mb(hw.engine_rss_mb)}`}
+          <div className="flex items-center gap-1 overflow-hidden whitespace-nowrap text-muted" title={`内存 ${mb(hw.ram_used_mb)} / ${mb(hw.ram_mb)}，推理引擎 ${mb(hw.engine_rss_mb)}`}>
+            <Cpu className="h-3 w-3 shrink-0" />
+            <span className="truncate">
+              RAM {(hw.ram_used_mb / 1024).toFixed(1)}/{(hw.ram_mb / 1024).toFixed(1)} GB
+              {hw.engine_rss_mb > 0 && ` · 引擎 ${mb(hw.engine_rss_mb)}`}
+            </span>
           </div>
         )}
       </div>
@@ -206,12 +207,8 @@ function EngineCard() {
 
 export function LeftSidebar() {
   return (
-    <aside className={clsx("flex w-[248px] shrink-0 flex-col gap-5 border-r border-line bg-sidebar px-4 pb-4", MAC_OVERLAY ? "pt-0" : "pt-5")}>
-      {/* macOS traffic lights sit in this strip (centred with the 56px top bar); it also drags the window. */}
-      {MAC_OVERLAY && <div data-tauri-drag-region className="-mx-4 -mb-3 h-11 shrink-0" />}
-      <div data-tauri-drag-region>
-        <Logo />
-      </div>
+    <aside className="flex w-[248px] shrink-0 flex-col gap-4 border-r border-line bg-sidebar px-4 pb-4 pt-4">
+
       <div className="scroll-thin min-h-0 flex-1 overflow-y-auto">
         <ModelList />
       </div>

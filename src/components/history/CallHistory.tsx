@@ -10,7 +10,7 @@ import { CallDetail } from "./CallDetail";
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <span className="flex items-baseline gap-1">
+    <span className="flex shrink-0 items-baseline gap-1">
       <span className="text-muted">{label}</span>
       <span className="font-mono tabular-nums text-fg">{value}</span>
     </span>
@@ -31,8 +31,8 @@ function Card({ c, onOpen }: { c: CallSummary; onOpen: () => void }) {
       {c.error ? (
         <div className="mt-1.5 truncate text-[11px] text-err">{c.error}</div>
       ) : m ? (
-        <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px]">
-          <Stat label="tok" value={`${m.tokens_in}→${m.tokens_out}`} />
+        <div className="mt-1.5 flex gap-x-2.5 overflow-hidden whitespace-nowrap text-[11px]">
+          <Stat label="" value={`${m.tokens_in}→${m.tokens_out}`} />
           <Stat label="首字" value={`${m.ttft_ms}ms`} />
           <Stat label="速" value={m.tps ? `${Math.round(m.tps)}/s` : "—"} />
           <Stat label="共" value={`${(m.elapsed_ms / 1000).toFixed(1)}s`} />
