@@ -13,7 +13,8 @@
     "tauri": "tauri",
     "engine": "cargo run --manifest-path src-tauri/src/engine/Cargo.toml --bin vnpen-engine --",
     "fetch-llama": "bash scripts/fetch-llama-server.sh",
-    "sync-models": "node scripts/sync-models.mjs"
+    "sync-models": "node scripts/sync-models.mjs",
+    "release": "bash scripts/build.sh"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
