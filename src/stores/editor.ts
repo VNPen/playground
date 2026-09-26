@@ -112,15 +112,8 @@ export function realtimeUnavailable(): boolean {
   return !m || !m.released;
 }
 
-const SAMPLE: Row[] = [
-  "旁白：夜色里，她的身影显的格外单薄。",
-  "旁白：脚步声在空荡的走廊里被无限的放大，压得叫人喘不过气。",
-  "玲：别站在那儿了，冷。",
-  "旁白：她把围巾往我脖子上一绕，指尖冰凉。",
-].map((raw) => ({ id: newRowId(), raw }));
-
 export const useEditor = create<EditorState>((set, get) => ({
-  rows: SAMPLE,
+  rows: [{ id: newRowId(), raw: "" }],
   pov: "",
   whitelist: "",
   voices: {},

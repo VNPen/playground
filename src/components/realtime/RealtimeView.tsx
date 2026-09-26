@@ -384,7 +384,7 @@ export function RealtimeView() {
                   selected={selected.includes(row.id)}
                   flash={flashId === row.id}
                   activeIssueId={activeIssueId}
-                  placeholder={rows.length === 1 ? "说话人：台词。例如「旁白：雨下了一整夜。」回车换行" : undefined}
+                  placeholder={i === 0 ? "使用 说话人：句子 尝试写作" : undefined}
                   onChange={onChange}
                   onKeyDown={onKeyDown}
                   onCaret={onCaret}
