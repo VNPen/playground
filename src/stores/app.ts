@@ -1,11 +1,11 @@
 import { create } from "zustand";
 import { api, ApiError, getEngine, loadEngineInfo, type EngineInfo } from "../api/client";
-import type { ErrorBody, ExternalConfig, GgufConfig, ModelView, PresetsView, ProcStatus, StatusResponse } from "../api/contract";
+import type { CatalogStatus, ErrorBody, ExternalConfig, GgufConfig, ModelView, PresetsView, ProcStatus, StatusResponse } from "../api/contract";
 import { loadSetting, saveSetting } from "../lib/persist";
 
 export type Tab = "chat" | "realtime";
 export type Theme = "system" | "light" | "dark";
-export type SettingsTab = "models" | "providers" | "system" | "appearance";
+export type SettingsTab = "models" | "providers" | "system";
 
 export interface Banner {
   error: ErrorBody;
@@ -20,6 +20,7 @@ interface AppState {
   procs: ProcStatus[];
   models: ModelView[];
   modelsDir: string;
+  catalog: CatalogStatus | null;
   presets: PresetsView | null;
   providerByTab: Record<Tab, string>;
   externals: ExternalConfig[];
@@ -47,10 +48,25 @@ interface AppState {
   setContextTokens: (tab: Tab, n: number) => void;
 }
 
+const THEME_KEY = "vnpen.theme";
+
+/** Switches without transitions: WebKit can leave transitioning colours stuck mid-way. */
 export function applyTheme(t: Theme) {
   const el = document.documentElement;
+  el.classList.add("theme-switching");
   if (t === "system") el.removeAttribute("data-theme");
   else el.setAttribute("data-theme", t);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove("theme-switching")));
+}
+
+/** Synchronous copy so the first paint already uses the right theme. */
+export function applyStoredTheme() {
+  try {
+    const t = localStorage.getItem(THEME_KEY) as Theme | null;
+    if (t) applyTheme(t);
+  } catch {
+    /* storage unavailable */
+  }
 }
 
 export function toErrorBody(e: unknown): ErrorBody {
@@ -66,6 +82,7 @@ export const useApp = create<AppState>((set, get) => ({
   procs: [],
   models: [],
   modelsDir: "",
+  catalog: null,
   presets: null,
   providerByTab: { chat: "vnpen", realtime: "vnpen" },
   externals: [],
@@ -85,7 +102,14 @@ export const useApp = create<AppState>((set, get) => ({
       loadSetting<boolean>("unlockSystem"),
       loadSetting<Record<"realtime" | "writer", string>>("systemOverride"),
     ]);
-    if (theme) applyTheme(theme);
+    if (theme) {
+      applyTheme(theme);
+      try {
+        localStorage.setItem(THEME_KEY, theme);
+      } catch {
+        /* storage unavailable */
+      }
+    }
     set({
       theme: theme ?? "system",
       providerByTab: providerByTab ?? { chat: "vnpen", realtime: "vnpen" },
@@ -117,14 +141,14 @@ export const useApp = create<AppState>((set, get) => ({
         api<StatusResponse>("/status"),
         api<{ processes: ProcStatus[] }>("/_playground/engine"),
         api<{ gguf: GgufConfig[] }>("/_playground/providers"),
-        api<{ dir: string; models: ModelView[] }>("/_playground/models"),
+        api<{ dir: string; models: ModelView[]; catalog: CatalogStatus }>("/_playground/models"),
       ]);
       const known = new Set(status.providers.map((p) => p.id));
       const byTab = { ...get().providerByTab };
       (Object.keys(byTab) as Tab[]).forEach((t) => {
         if (!known.has(byTab[t])) byTab[t] = "vnpen";
       });
-      set({ status, procs: eng.processes, ggufs: prov.gguf, providerByTab: byTab, models: models.models, modelsDir: models.dir });
+      set({ status, procs: eng.processes, ggufs: prov.gguf, providerByTab: byTab, models: models.models, modelsDir: models.dir, catalog: models.catalog });
     } catch {
       /* status polling is best-effort; errors surface on real requests */
     }
@@ -151,6 +175,11 @@ export const useApp = create<AppState>((set, get) => ({
 
   setTheme: (theme) => {
     applyTheme(theme);
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch {
+      /* storage unavailable */
+    }
     set({ theme });
     saveSetting("theme", theme);
   },
@@ -177,6 +206,17 @@ export const useApp = create<AppState>((set, get) => ({
   clearBanner: () => set({ banner: null }),
   setContextTokens: (tab, n) => set({ contextTokens: { ...get().contextTokens, [tab]: n } }),
 }));
+
+/** "Writer v0.1-preview-GGUF" for the model the task layer will use for this role. */
+export function activeLabel(models: ModelView[], role: "writer" | "realtime"): string {
+  const withActive = models.find((m) => m.role === role && m.files.some((f) => f.active));
+  const m = withActive ?? models.find((x) => x.role === role);
+  return m?.display_name ?? (role === "writer" ? "Writer" : "Realtime");
+}
+
+export function hasInstalled(models: ModelView[], role: "writer" | "realtime"): boolean {
+  return models.some((m) => m.role === role && m.files.some((f) => f.installed));
+}
 
 /** Provider object of the current tab, plus whether it is our own model. */
 export function useProvider(tab: Tab) {

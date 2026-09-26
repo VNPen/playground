@@ -77,9 +77,9 @@ function UnavailableNotice() {
   return (
     <div className="flex items-center gap-2 border-b border-line bg-info-soft px-5 py-2 text-[13px] text-info">
       <Info className="h-4 w-4 shrink-0" />
-      <span className="flex-1">realtime 模型即将推出：当前仅规则层校对可用。可添加外部 provider 或本地 GGUF 体验续写与模型校对。</span>
+      <span className="flex-1">realtime 模型即将推出：当前仅规则层校对可用。可添加外部提供者或本地 GGUF 体验续写与模型校对。</span>
       <Button size="sm" onClick={() => openSettings("providers")}>
-        添加 provider
+        添加提供者
       </Button>
     </div>
   );

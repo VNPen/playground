@@ -16,7 +16,14 @@
         "width": 1360,
         "height": 880,
         "minWidth": 1120,
-        "minHeight": 680
+        "minHeight": 680,
+        "label": "main",
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": {
+          "x": 18,
+          "y": 22
+        }
       }
     ],
     "security": {
@@ -25,11 +32,23 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["app", "dmg", "nsis"],
+    "targets": [
+      "app",
+      "dmg",
+      "nsis"
+    ],
     "category": "Productivity",
     "shortDescription": "VNPen 模型与接口合同试验台",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
-    "externalBin": ["binaries/llama-server"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "externalBin": [
+      "binaries/llama-server"
+    ],
     "resources": {
       "presets/": "presets/",
       "models.json": "models.json"
@@ -40,7 +59,9 @@
       "hardenedRuntime": true
     },
     "windows": {
-      "nsis": { "installMode": "currentUser" },
+      "nsis": {
+        "installMode": "currentUser"
+      },
       "signCommand": null
     }
   }

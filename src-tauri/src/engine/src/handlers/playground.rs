@@ -29,7 +29,12 @@ pub async fn clear_calls(State(st): St) -> StatusCode {
 }
 
 pub async fn models(State(st): St) -> Json<Value> {
-    Json(json!({ "dir": st.models.dir(), "models": st.models.views() }))
+    Json(json!({ "dir": st.models.dir(), "models": st.models.views(), "catalog": st.models.catalog_status() }))
+}
+
+pub async fn refresh_models(State(st): St) -> ApiResult<StatusCode> {
+    st.models.refresh_catalog().await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[derive(Deserialize)]

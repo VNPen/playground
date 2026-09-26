@@ -28,7 +28,7 @@ function Sampling() {
   const { own, external, provider } = useProvider(tab);
   const p = useParams();
   const thinkingSupported = external && !!provider?.capabilities.thinking;
-  const thinkingHint = own ? (tab === "chat" ? "VNPen 模型不支持思考" : "Realtime 不支持思考") : thinkingSupported ? "外部模型按能力位开启" : "该 provider 未声明支持";
+  const thinkingHint = own ? (tab === "chat" ? "VNPen 模型不支持思考" : "Realtime 不支持思考") : thinkingSupported ? "外部模型按能力位开启" : "该提供者未声明支持";
   return (
     <section>
       <SectionTitle>采样参数</SectionTitle>

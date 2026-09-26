@@ -195,8 +195,18 @@ export interface ModelFileView {
   download?: DownloadState;
 }
 
+export interface CatalogStatus {
+  source: "huggingface" | "cache" | "bundled" | string;
+  org: string;
+  fetched_at_ms?: number;
+  refreshing: boolean;
+  error?: string;
+}
+
 export interface ModelView {
   id: string;
+  /** e.g. "v0.1-preview-GGUF" */
+  version?: string;
   name: string;
   display_name: string;
   role: ModelRole;

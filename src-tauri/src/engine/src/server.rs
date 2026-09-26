@@ -50,6 +50,7 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/_playground/calls", get(playground::calls).delete(playground::clear_calls))
         .route("/_playground/calls/{id}", get(playground::call))
         .route("/_playground/models", get(playground::models))
+        .route("/_playground/models/refresh", post(playground::refresh_models))
         .route("/_playground/models/download", post(playground::download))
         .route("/_playground/models/delete", post(playground::delete_model))
         .route("/_playground/models/select", post(playground::select_model))

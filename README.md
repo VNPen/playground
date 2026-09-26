@@ -22,7 +22,7 @@ pnpm fetch-llama
 pnpm tauri dev
 ```
 
-首次启动后在「设置 → 模型」下载 vnpen-writer（Q8_0 推荐，Q4_K_M 省内存）。realtime 模型尚未发布，实时页可先用规则层校对，或接入外部 provider / 本地 GGUF 体验续写。
+首次启动时左侧会提示「需要下载模型」：在「设置 → 模型」下载 Writer（Q8_0 推荐，Q4_K_M 省内存）。realtime 模型尚未发布，实时页可先用规则层校对，或接入外部 provider / 本地 GGUF 体验续写。
 
 ### 只用浏览器调 UI
 
@@ -115,7 +115,11 @@ Playground 提供「解锁 system（实验）」开关（默认关），开启�
 
 默认采样（`presets/sampling.json`）：temperature 0.8、top_p 0.95、top_k 40、repeat_penalty 1.1、repeat_last_n 256、stop `<|im_end|>` `<|endoftext|>`。任务层拒绝会破坏格式的组合（temperature < 0.5、repeat_penalty < 1.0 等）并返回 400。
 
-## models.json
+## 模型列表
+
+模型列表在启动时读取自 Hugging Face 组织 **VNPen**（可用 `VNPEN_HF_ORG` 改组织，`HF_ENDPOINT` 用镜像）：每个名为 `vnpen-<writer|realtime>-<参数量>-<版本>-GGUF` 的仓库是一个模型，显示为「Writer v0.1-preview-GGUF」这样的名称，仓库里每个 `.gguf` 文件（排除 imatrix / mmproj）是一个可下载的量化版本，sha256 与大小取自 LFS 元数据。结果缓存在数据目录的 `catalog.json`，设置 → 模型可手动刷新。离线时依次使用缓存和安装包内的 `models.json`。组织里还没有的角色（目前是 realtime）保留 `models.json` 中的占位条目，显示「即将推出」。
+
+### models.json（离线兜底）
 
 ```jsonc
 {
@@ -138,13 +142,13 @@ Playground 提供「解锁 system（实验）」开关（默认关），开启�
 }
 ```
 
-`sha256` 与 `size` 由 `pnpm sync-models` 从 `https://huggingface.co/api/models/{repo}/tree/main` 的 LFS 元数据写入，`tauri build` 前自动执行；若为空，任务层下载时会现查。下载由任务层完成（断点续传、写 `.part`、sha256 校验通过后改名），llama-server 不联网。国内网络可设置 `HF_ENDPOINT` 使用镜像。
+`pnpm sync-models` 按上面的规则从组织重新生成此文件，`tauri build` 前自动执行；不要手填 `sha256` / `size`。下载由任务层完成（断点续传、写 `.part`、sha256 校验通过后改名），llama-server 不联网。国内网络可设置 `HF_ENDPOINT` 使用镜像。
 
-## 添加外部 provider
+## 添加外部提供者
 
-设置 → Provider → 添加：名称、Base URL（OpenAI 兼容，不含 `/v1`）、API Key、模型名、能力位（思考、JSON mode、延迟）。可逐接口覆盖说明书版 system。配置保存在应用设置中，启动时推送给任务层（`PUT /v1/vnpen/_playground/providers/external`）。外部模型给出的校对 Issue 一律 `confidence: low`、`source: external`。
+设置 → 提供者 → 添加：名称、Base URL（OpenAI 兼容，不含 `/v1`）、API Key、模型名、能力位（思考、JSON mode、延迟）。可逐接口覆盖说明书版 system。配置保存在应用设置中，启动时推送给任务层（`PUT /v1/vnpen/_playground/providers/external`）。外部模型给出的校对 Issue 一律 `confidence: low`、`source: external`。
 
-本地 GGUF：设置 → Provider → 本地 GGUF，选择文件；任务层用它临时起一个 llama-server（空闲 10 分钟卸载），仅本次运行有效。
+本地 GGUF：设置 → 提供者 → 本地 GGUF，选择文件；任务层用它临时起一个 llama-server（空闲 10 分钟卸载），仅本次运行有效。
 
 ## 把 engine crate 接进 Desktop
 
@@ -210,7 +214,7 @@ VNPEN_TEST_GGUF=/path/to/Qwen3.5-0.8B-Q4_K_M.gguf cargo test --manifest-path src
 
 ## 色卡
 
-主色 `#3F3A9E`，定义在 `src/styles/tokens.css`，浅色为默认、跟随系统切换深色，设置 → 外观可手动指定。
+主色 `#3F3A9E`，定义在 `src/styles/tokens.css`。浅色为默认，深色为中性黑灰底（主色只用于强调），标题栏的外观按钮在「跟随系统 / 浅色 / 深色」间切换。
 
 | Token | 浅色 | 用途 |
 |---|---|---|
@@ -239,6 +243,10 @@ VNPEN_TEST_GGUF=/path/to/Qwen3.5-0.8B-Q4_K_M.gguf cargo test --manifest-path src
 - 续写灰字（Tab 接受 / Esc 忽略）、行选择 + 轻 / 重度改写与 diff 预览、对话剧本块「插入到实时编辑区」、生成中可停止。
 - 引擎状态分别显示 writer / realtime 等进程；错误横幅按错误码给出重试 / 去下载；各处空状态；图标按钮均有 aria-label 与提示。
 - 调用历史为 Opencode 式小卡片（tokens、首字、速度、耗时），点开可看渲染后 Prompt、原始输出、解析结果与 Raw JSON。
+
+## 窗口
+
+无边框窗口：macOS 使用透明标题栏（`titleBarStyle: Overlay`，保留红绿灯，位于侧栏顶部），Windows / Linux 关闭系统装饰（`tauri.windows.conf.json`、`tauri.linux.conf.json`），由应用在标题栏右侧绘制最小化 / 最大化 / 关闭按钮。顶栏和侧栏顶部可拖动窗口。
 
 ## 打包
 

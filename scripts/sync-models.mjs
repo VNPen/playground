@@ -1,45 +1,61 @@
 #!/usr/bin/env node
-// Fills sha256 / size in src-tauri/models.json from Hugging Face LFS metadata.
-// Runs before `tauri build`. Never hand-edit these fields.
+// Regenerates src-tauri/models.json from the Hugging Face organisation (VNPEN_HF_ORG, default
+// "VNPen"). The app reads the organisation live at startup; this file is only the offline
+// fallback shipped in the installer. Roles the organisation does not publish yet keep their
+// placeholder entry (status "not_released").
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 const path = fileURLToPath(new URL("../src-tauri/models.json", import.meta.url));
 const endpoint = process.env.HF_ENDPOINT ?? "https://huggingface.co";
+const org = process.env.VNPEN_HF_ORG ?? "VNPen";
 const strict = process.argv.includes("--strict");
 
-const manifest = JSON.parse(await readFile(path, "utf8"));
-let changed = false;
-let failed = false;
+const ORDER = ["Q8_0", "Q6_K", "Q5_K_M", "Q5_K_S", "Q4_K_M", "Q4_K_S", "IQ4_XS", "Q3_K_M", "BF16", "F16"];
+const NOTE = { Q8_0: "推荐", Q4_K_M: "省内存", BF16: "原始精度", F16: "原始精度" };
+const rank = (q) => (ORDER.includes(q) ? ORDER.indexOf(q) : ORDER.length);
+const quantOf = (f) => f.replace(/\.gguf$/i, "").split(/[-.]/).pop().toUpperCase();
 
-for (const m of manifest.models) {
-  if (m.status !== "released" || !m.repo) continue;
-  let tree;
-  try {
-    const res = await fetch(`${endpoint}/api/models/${m.repo}/tree/main`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    tree = await res.json();
-  } catch (e) {
-    console.warn(`! ${m.repo}: ${e.message}`);
-    failed = true;
-    continue;
-  }
-  for (const f of m.files) {
-    const entry = tree.find((t) => t.path === f.file);
-    if (!entry?.lfs) {
-      console.warn(`! ${m.repo}/${f.file}: not found`);
-      failed = true;
-      continue;
-    }
-    if (f.sha256 !== entry.lfs.oid || f.size !== entry.lfs.size) {
-      f.sha256 = entry.lfs.oid;
-      f.size = entry.lfs.size;
-      changed = true;
-    }
-    console.log(`✓ ${m.repo}/${f.file}  ${(f.size / 2 ** 30).toFixed(2)} GB  ${f.sha256.slice(0, 12)}…`);
-  }
+async function json(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
+  return res.json();
 }
 
-if (changed) await writeFile(path, JSON.stringify(manifest, null, 2) + "\n");
-if (failed && strict) process.exit(1);
-if (failed) console.warn("sync-models: some entries were not synced; the app will read metadata from HF at download time.");
+const old = JSON.parse(await readFile(path, "utf8"));
+try {
+  const repos = await json(`${endpoint}/api/models?author=${org}&limit=200`);
+  const models = [];
+  for (const { id: repo } of repos) {
+    const m = repo.split("/").pop().match(/^vnpen-(writer|realtime)-(\d+(?:\.\d+)?[bm])-(.+-gguf)$/i);
+    if (!m) continue;
+    const role = m[1].toLowerCase();
+    const tree = await json(`${endpoint}/api/models/${repo}/tree/main`);
+    const files = tree
+      .filter((t) => /\.gguf$/i.test(t.path) && !t.path.includes("/") && !/imatrix|mmproj/i.test(t.path) && t.lfs)
+      .map((t) => {
+        const quant = quantOf(t.path);
+        return { file: t.path, quant, recommended: quant === "Q8_0", note: NOTE[quant] ?? null, sha256: t.lfs.oid, size: t.lfs.size };
+      })
+      .sort((a, b) => rank(a.quant) - rank(b.quant));
+    if (!files.length) continue;
+    const name = repo.split("/").pop();
+    models.push({
+      id: name.replace(/-GGUF$/i, ""),
+      name: `vnpen-${role}`,
+      display_name: `${role === "writer" ? "Writer" : "Realtime"} ${m[3]}`,
+      role,
+      status: "released",
+      params: m[2].toUpperCase(),
+      repo,
+      version: m[3],
+      files,
+    });
+    console.log(`✓ ${repo}  ${files.map((f) => f.quant).join(" ")}`);
+  }
+  for (const fb of old.models) if (!models.some((x) => x.role === fb.role)) models.push(fb);
+  await writeFile(path, JSON.stringify({ version: 1, models }, null, 2) + "\n");
+} catch (e) {
+  console.warn(`sync-models: ${e.message}; keeping existing models.json`);
+  if (strict) process.exit(1);
+}

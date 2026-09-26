@@ -1,19 +1,18 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import clsx from "clsx";
-import { AlertTriangle, Box, Cloud, Download, FolderOpen, HardDrive, Lock, Palette, Plus, Trash2, X } from "lucide-react";
+import { AlertTriangle, Box, Cloud, Download, FolderOpen, HardDrive, Lock, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api, ApiError, isTauri } from "../../api/client";
 import type { ExternalConfig, ModelFileView, ModelView } from "../../api/contract";
-import { bytes } from "../../lib/format";
+import { bytes, time } from "../../lib/format";
 import { useApp, type SettingsTab } from "../../stores/app";
 import { Badge, Button, Input, Segmented, Spinner, Switch, TextArea } from "../common/ui";
 import { openExternal } from "../layout/TopBar";
 
 const TABS: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
   { id: "models", label: "模型", icon: <Box className="h-4 w-4" /> },
-  { id: "providers", label: "Provider", icon: <Cloud className="h-4 w-4" /> },
+  { id: "providers", label: "提供者", icon: <Cloud className="h-4 w-4" /> },
   { id: "system", label: "System Prompt", icon: <Lock className="h-4 w-4" /> },
-  { id: "appearance", label: "外观", icon: <Palette className="h-4 w-4" /> },
 ];
 
 function errText(e: unknown) {
@@ -90,9 +89,54 @@ function FileRow({ model, f, onChanged }: { model: ModelView; f: ModelFileView; 
   );
 }
 
+const SOURCE: Record<string, string> = { huggingface: "Hugging Face", cache: "本地缓存", bundled: "安装包内置列表" };
+
+function CatalogBar() {
+  const catalog = useApp((s) => s.catalog);
+  const refresh = useApp((s) => s.refreshStatus);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const run = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      await api("/_playground/models/refresh", { method: "POST", body: {} });
+    } catch (e) {
+      setErr(errText(e));
+    } finally {
+      await refresh();
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="flex items-center gap-2 text-xs text-fg2">
+      <span className="flex-1">
+        模型列表来源：{SOURCE[catalog?.source ?? ""] ?? "—"}
+        {catalog?.fetched_at_ms && ` · 更新于 ${time(catalog.fetched_at_ms)}`}
+        {(err ?? catalog?.error) && <span className="ml-2 text-err">{err ?? catalog?.error}</span>}
+      </span>
+      <Button size="sm" onClick={run} disabled={busy || catalog?.refreshing}>
+        {busy || catalog?.refreshing ? <Spinner /> : <RefreshCw className="h-3.5 w-3.5" />} 刷新
+      </Button>
+    </div>
+  );
+}
+
+function EngineInfo() {
+  const engine = useApp((s) => s.engine);
+  return (
+    <div className="rounded-lg bg-sunken p-3 font-mono text-[11px] leading-5 text-fg2">
+      <div>任务层：{engine?.base_url || "—"}</div>
+      <div>llama-server：{engine?.llama_server ?? "未找到"}</div>
+      <div>数据目录：{engine?.data_dir ?? "—"}</div>
+    </div>
+  );
+}
+
 function ModelsTab() {
   const models = useApp((s) => s.models);
   const dir = useApp((s) => s.modelsDir);
+  const catalog = useApp((s) => s.catalog);
   const refresh = useApp((s) => s.refreshStatus);
   const [err, setErr] = useState<string | null>(null);
   useEffect(() => {
@@ -131,13 +175,13 @@ function ModelsTab() {
         </Button>
       </div>
       {err && <div className="text-xs text-err">{err}</div>}
-      <p className="text-xs leading-5 text-muted">模型由任务层自己下载（断点续传、sha256 校验），llama-server 不联网。删除即删除文件。可设置环境变量 HF_ENDPOINT 使用镜像。</p>
+      <CatalogBar />
+      <p className="text-xs leading-5 text-muted">模型列表读取自 Hugging Face 组织 {catalog?.org ?? "VNPen"} 下的 GGUF 仓库。下载由任务层完成（断点续传、sha256 校验），llama-server 不联网；删除即删除文件。可设置环境变量 HF_ENDPOINT 使用镜像。</p>
       {models.map((m) => (
         <div key={m.id} className="rounded-xl border border-line p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-[14px] font-semibold text-fg">{m.name}</span>
-              <Badge tone="muted">{m.role}</Badge>
+              <span className="text-[14px] font-semibold text-fg">{m.display_name}</span>
               {m.params && <Badge>{m.params}</Badge>}
             </div>
             {m.status !== "released" ? (
@@ -161,6 +205,7 @@ function ModelsTab() {
           )}
         </div>
       ))}
+      <EngineInfo />
     </div>
   );
 }
@@ -292,7 +337,7 @@ function ProvidersTab() {
     <div className="space-y-6">
       <section>
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-[14px] font-semibold text-fg">外部 provider</h3>
+          <h3 className="text-[14px] font-semibold text-fg">外部提供者</h3>
           {!editing && (
             <Button size="sm" onClick={() => setEditing(blankExternal())}>
               <Plus className="h-3.5 w-3.5" /> 添加
@@ -332,7 +377,7 @@ function ProvidersTab() {
               }}
             />
           )}
-          {!externals.length && !editing && <div className="text-xs text-muted">暂无外部 provider。</div>}
+          {!externals.length && !editing && <div className="text-xs text-muted">暂无外部提供者。</div>}
         </div>
       </section>
       <section>
@@ -424,30 +469,6 @@ function SystemTab() {
   );
 }
 
-function AppearanceTab() {
-  const theme = useApp((s) => s.theme);
-  const setTheme = useApp((s) => s.setTheme);
-  const engine = useApp((s) => s.engine);
-  return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <span className="text-[13px] text-fg">主题</span>
-        <Segmented label="主题" value={theme} onChange={setTheme} options={[{ value: "system", label: "跟随系统" }, { value: "light", label: "浅色" }, { value: "dark", label: "深色" }]} />
-      </div>
-      <div className="grid grid-cols-10 gap-1.5">
-        {["50", "100", "200", "300", "400", "500", "600", "700", "800", "900"].map((k) => (
-          <div key={k} className="h-8 rounded-md" style={{ background: `var(--brand-${k})` }} title={`brand-${k}`} />
-        ))}
-      </div>
-      <div className="rounded-lg bg-sunken p-3 font-mono text-[11px] leading-5 text-fg2">
-        <div>任务层：{engine?.base_url || "—"}</div>
-        <div>llama-server：{engine?.llama_server ?? "未找到"}</div>
-        <div>数据目录：{engine?.data_dir ?? "—"}</div>
-      </div>
-    </div>
-  );
-}
-
 export function SettingsDialog() {
   const tab = useApp((s) => s.settings);
   const open = useApp((s) => s.openSettings);
@@ -469,7 +490,7 @@ export function SettingsDialog() {
           <div className="flex min-w-0 flex-1 flex-col">
             <div className="flex items-center justify-between border-b border-line px-6 py-3">
               <span className="text-[15px] font-semibold text-fg">{TABS.find((t) => t.id === tab)?.label}</span>
-              <Dialog.Description className="sr-only">模型下载、provider 与 system 设置</Dialog.Description>
+              <Dialog.Description className="sr-only">模型下载、提供者与 system 设置</Dialog.Description>
               <Dialog.Close className="rounded-md p-1 text-fg2 hover:bg-sunken" aria-label="关闭">
                 <X className="h-4 w-4" />
               </Dialog.Close>
@@ -478,7 +499,6 @@ export function SettingsDialog() {
               {tab === "models" && <ModelsTab />}
               {tab === "providers" && <ProvidersTab />}
               {tab === "system" && <SystemTab />}
-              {tab === "appearance" && <AppearanceTab />}
             </div>
           </div>
         </Dialog.Content>

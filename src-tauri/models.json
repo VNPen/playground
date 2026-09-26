@@ -4,11 +4,12 @@
     {
       "id": "vnpen-writer-2b-v0.1-preview",
       "name": "vnpen-writer",
-      "display_name": "vnpen-writer-2b-v0.1-preview-GGUF",
+      "display_name": "Writer v0.1-preview-GGUF",
       "role": "writer",
       "status": "released",
       "params": "2B",
       "repo": "VNPen/vnpen-writer-2b-v0.1-preview-GGUF",
+      "version": "v0.1-preview-GGUF",
       "files": [
         {
           "file": "writer-2b-preview-Q8_0.gguf",
@@ -19,19 +20,51 @@
           "size": 2012005440
         },
         {
+          "file": "writer-2b-preview-Q6_K.gguf",
+          "quant": "Q6_K",
+          "recommended": false,
+          "note": null,
+          "sha256": "f009521b7894f858da320d5e99c7c121131a8566922493b8261a90d9e13ca0db",
+          "size": 1556384032
+        },
+        {
+          "file": "writer-2b-preview-Q5_K_M.gguf",
+          "quant": "Q5_K_M",
+          "recommended": false,
+          "note": null,
+          "sha256": "3797b3f9236ded930caffb409d772e7f529eb2abe58984ba1a46b1ae6fe46b3c",
+          "size": 1411114272
+        },
+        {
           "file": "writer-2b-preview-Q4_K_M.gguf",
           "quant": "Q4_K_M",
           "recommended": false,
           "note": "省内存",
           "sha256": "eea18c0cb3ee1983c7525be178be641d53a787b0dc060d6a0216eaa321c92633",
           "size": 1274389792
+        },
+        {
+          "file": "writer-2b-preview-IQ4_XS.gguf",
+          "quant": "IQ4_XS",
+          "recommended": false,
+          "note": null,
+          "sha256": "d3f8cce10011e8c3eda8d6a6961a541a6fdfe595755acf228f6101be078d9719",
+          "size": 1195955488
+        },
+        {
+          "file": "writer-2b-preview-BF16.gguf",
+          "quant": "BF16",
+          "recommended": false,
+          "note": "原始精度",
+          "sha256": "5a5994523828e734228e210802333ab3b9724c53e2b89cf709978309a758c4b8",
+          "size": 3775702080
         }
       ]
     },
     {
       "id": "vnpen-realtime",
       "name": "vnpen-realtime",
-      "display_name": "vnpen-realtime",
+      "display_name": "Realtime",
       "role": "realtime",
       "status": "not_released",
       "params": null,

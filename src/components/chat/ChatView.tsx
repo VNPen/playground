@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Block } from "../../api/contract";
 import { metaLine } from "../../lib/format";
 import { speakerColor, speakerOrder } from "../../lib/speakers";
-import { useApp, useProvider } from "../../stores/app";
+import { activeLabel, useApp, useProvider } from "../../stores/app";
 import { blocksToText, useChat, type AssistantMsg } from "../../stores/chat";
 import { useEditor } from "../../stores/editor";
 import { Button, Dot, Empty, Input, Segmented, Tip } from "../common/ui";
@@ -140,10 +140,11 @@ function Composer() {
   const send = useChat((s) => s.send);
   const stop = useChat((s) => s.stop);
   const busy = useChat((s) => !!s.handle);
-  const models = useApp((s) => s.status?.providers);
+  const providers = useApp((s) => s.status?.providers);
   const providerId = useApp((s) => s.providerByTab.chat);
+  const models = useApp((s) => s.models);
   const ref = useRef<HTMLTextAreaElement>(null);
-  const name = providerId === "vnpen" ? "vnpen-writer" : models?.find((p) => p.id === providerId)?.name ?? providerId;
+  const name = providerId === "vnpen" ? activeLabel(models, "writer") : providers?.find((p) => p.id === providerId)?.name ?? providerId;
 
   useEffect(() => {
     const el = ref.current;
@@ -177,12 +178,12 @@ function Composer() {
             value={mode}
             onChange={setMode}
             options={[
-              { value: "chat", label: "对话 /chat" },
-              { value: "brief", label: "命题写作 /brief" },
+              { value: "chat", label: "对话" },
+              { value: "brief", label: "命题写作" },
             ]}
           />
           {mode === "brief" && (
-            <label className="flex items-center gap-2 text-xs text-fg2">
+            <label className="flex shrink-0 items-center gap-2 whitespace-nowrap text-xs text-fg2">
               行数
               <Input type="number" min={0} max={80} value={lengthLines || ""} placeholder="不限" onChange={(e) => setLengthLines(Math.max(0, Math.min(80, Number(e.target.value) || 0)))} className="h-7 w-20" />
             </label>
@@ -200,9 +201,9 @@ function Composer() {
                 submit();
               }
             }}
-            placeholder={mode === "chat" ? `使用 ${name} 对话…（Enter 发送 · Shift+Enter 换行）` : "描述要写的场景，例如：放学后的天台，两人第一次说真心话"}
+            placeholder={`使用 ${name} ${mode === "chat" ? "对话" : "写作"}…（Enter 发送 · Shift+Enter 换行）`}
             aria-label="输入消息"
-            className="max-h-[180px] flex-1 resize-none bg-transparent py-1.5 text-[14px] leading-6 text-fg placeholder:text-muted focus:outline-none"
+            className="max-h-[180px] flex-1 resize-none bg-transparent py-1.5 text-[14px] leading-6 text-fg outline-none placeholder:text-muted focus:outline-none focus-visible:outline-none"
           />
           {busy ? (
             <Tip label="停止生成">

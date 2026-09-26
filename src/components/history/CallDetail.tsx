@@ -79,7 +79,7 @@ export function CallDetail() {
             <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
               <div className="grid grid-cols-4 gap-2 text-xs">
                 {[
-                  ["Provider", detail.provider],
+                  ["提供者", detail.provider],
                   ["模型", detail.model],
                   ["tokens", m ? `${m.tokens_in} → ${m.tokens_out}` : "—"],
                   ["首字", m ? `${m.ttft_ms} ms` : "—"],

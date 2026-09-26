@@ -1,7 +1,8 @@
 import clsx from "clsx";
-import { Plus, RotateCcw, Settings2 } from "lucide-react";
+import { Minus, Monitor, Moon, Plus, RotateCcw, Settings2, Square, Sun, X } from "lucide-react";
 import { isTauri } from "../../api/client";
-import { useApp, type Tab } from "../../stores/app";
+import { CUSTOM_CONTROLS } from "../../lib/platform";
+import { useApp, type Tab, type Theme } from "../../stores/app";
 import { useChat } from "../../stores/chat";
 import { useEditor } from "../../stores/editor";
 import { useParams } from "../../stores/params";
@@ -43,13 +44,53 @@ function ContextUsage() {
   );
 }
 
+const THEMES: { value: Theme; label: string; icon: React.ReactNode }[] = [
+  { value: "system", label: "跟随系统", icon: <Monitor className="h-4 w-4" /> },
+  { value: "light", label: "浅色", icon: <Sun className="h-4 w-4" /> },
+  { value: "dark", label: "深色", icon: <Moon className="h-4 w-4" /> },
+];
+
+function ThemeButton() {
+  const theme = useApp((s) => s.theme);
+  const setTheme = useApp((s) => s.setTheme);
+  const i = THEMES.findIndex((t) => t.value === theme);
+  const next = THEMES[(i + 1) % THEMES.length];
+  return (
+    <IconButton label={`外观：${THEMES[i].label}（点击切换为${next.label}）`} onClick={() => setTheme(next.value)}>
+      {THEMES[i].icon}
+    </IconButton>
+  );
+}
+
+async function win() {
+  const { getCurrentWindow } = await import("@tauri-apps/api/window");
+  return getCurrentWindow();
+}
+
+function WindowControls() {
+  const btn = "flex h-8 w-9 items-center justify-center rounded-md text-fg2 hover:bg-sunken hover:text-fg";
+  return (
+    <div className="ml-2 flex items-center border-l border-line pl-2">
+      <button aria-label="最小化" className={btn} onClick={async () => (await win()).minimize()}>
+        <Minus className="h-4 w-4" />
+      </button>
+      <button aria-label="最大化" className={btn} onClick={async () => (await win()).toggleMaximize()}>
+        <Square className="h-3.5 w-3.5" />
+      </button>
+      <button aria-label="关闭" className={`${btn} hover:!bg-err hover:!text-white`} onClick={async () => (await win()).close()}>
+        <X className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
 export function TopBar() {
   const tab = useApp((s) => s.tab);
   const setTab = useApp((s) => s.setTab);
   const openSettings = useApp((s) => s.openSettings);
   const resetParams = useParams((s) => s.reset);
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-line bg-card px-4">
+    <header data-tauri-drag-region className="flex h-14 shrink-0 select-none items-center justify-between border-b border-line bg-card px-4">
       <Segmented
         label="模式"
         value={tab}
@@ -59,7 +100,7 @@ export function TopBar() {
           { value: "realtime", label: "实时" },
         ]}
       />
-      <div className="flex items-center gap-2">
+      <div data-tauri-drag-region className="flex items-center gap-2">
         <ContextUsage />
         <Tip label="⌘N">
           <Button variant="primary" onClick={() => newConversation(tab)} aria-label="新对话">
@@ -73,9 +114,11 @@ export function TopBar() {
         <IconButton label="设置（⌘,）" onClick={() => openSettings()}>
           <Settings2 className="h-4 w-4" />
         </IconButton>
+        <ThemeButton />
         <IconButton label="GitHub 仓库" onClick={() => openExternal(REPO_URL)}>
           <GithubMark className="h-4 w-4" />
         </IconButton>
+        {CUSTOM_CONTROLS && <WindowControls />}
       </div>
     </header>
   );

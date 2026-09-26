@@ -1,5 +1,11 @@
-//! models.json, downloads (resumable, sha256-verified) and on-disk layout.
-//! The task layer downloads by itself; llama-server never touches the network.
+//! Model catalog, downloads (resumable, sha256-verified) and on-disk layout.
+//!
+//! The catalog is read from the Hugging Face organisation (`VNPEN_HF_ORG`, default
+//! "VNPen"): every `vnpen-<role>-<params>-<version>-GGUF` repo becomes an entry and
+//! each of its .gguf files a downloadable quant. It is cached in the data dir; the
+//! bundled models.json is the offline fallback and supplies placeholders such as
+//! the unreleased realtime model. The task layer downloads by itself; llama-server
+//! never touches the network.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -43,6 +49,9 @@ pub struct ModelEntry {
     pub repo: Option<String>,
     #[serde(default)]
     pub files: Vec<ModelFile>,
+    /// e.g. "v0.1-preview-GGUF"
+    #[serde(default)]
+    pub version: Option<String>,
 }
 
 impl ModelEntry {
@@ -78,6 +87,7 @@ pub struct FileView {
 #[derive(Debug, Clone, Serialize)]
 pub struct ModelView {
     pub id: String,
+    pub version: Option<String>,
     pub name: String,
     pub display_name: String,
     pub role: ModelRole,
@@ -94,12 +104,27 @@ pub struct ActiveModel {
     pub path: PathBuf,
 }
 
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct CatalogStatus {
+    /// "huggingface" | "cache" | "bundled"
+    pub source: String,
+    pub org: String,
+    pub fetched_at_ms: Option<u64>,
+    pub refreshing: bool,
+    pub error: Option<String>,
+}
+
 pub struct ModelStore {
     manifest: RwLock<Manifest>,
+    /// Placeholders from the bundled models.json (e.g. unreleased roles).
+    fallback: Manifest,
+    cache_path: PathBuf,
+    catalog: RwLock<CatalogStatus>,
+    org: String,
     dir: RwLock<PathBuf>,
     /// Read-only models shipped inside a "完整版" installer.
     bundled: Option<PathBuf>,
-    selected: RwLock<HashMap<ModelRole, String>>,
+    selected: RwLock<HashMap<ModelRole, (String, String)>>,
     downloads: DashMap<String, DownloadState>,
     cancels: DashMap<String, CancellationToken>,
     http: reqwest::Client,
@@ -111,14 +136,24 @@ fn key(id: &str, file: &str) -> String {
 }
 
 impl ModelStore {
-    pub fn load(manifest_path: &Path, dir: PathBuf, bundled: Option<PathBuf>) -> Result<Arc<Self>> {
+    pub fn load(manifest_path: &Path, dir: PathBuf, bundled: Option<PathBuf>, cache_path: PathBuf) -> Result<Arc<Self>> {
         let raw = std::fs::read_to_string(manifest_path)
             .map_err(|e| EngineError::NotFound(format!("models.json: {e}")))?;
-        let manifest: Manifest = serde_json::from_str(&raw)
+        let fallback: Manifest = serde_json::from_str(&raw)
             .map_err(|e| EngineError::Invalid(format!("models.json: {e}")))?;
         let _ = std::fs::create_dir_all(&dir);
+        let org = std::env::var("VNPEN_HF_ORG").unwrap_or_else(|_| "VNPen".into());
+        let cached = std::fs::read_to_string(&cache_path).ok().and_then(|s| serde_json::from_str::<Manifest>(&s).ok());
+        let (manifest, source) = match cached {
+            Some(m) => (m, "cache"),
+            None => (fallback.clone(), "bundled"),
+        };
         Ok(Arc::new(Self {
             manifest: RwLock::new(manifest),
+            fallback,
+            cache_path,
+            catalog: RwLock::new(CatalogStatus { source: source.into(), org: org.clone(), ..Default::default() }),
+            org,
             dir: RwLock::new(dir),
             bundled: bundled.filter(|b| b.is_dir()),
             selected: RwLock::new(HashMap::new()),
@@ -175,22 +210,24 @@ impl ModelStore {
         !self.download_path(id, file).is_file() && self.bundled_path(id, file).is_some()
     }
 
+    /// Newest released entry of a role, else its placeholder.
     pub fn entry_for(&self, role: ModelRole) -> Option<ModelEntry> {
-        self.entries().into_iter().find(|e| e.role == role)
+        let all: Vec<ModelEntry> = self.entries().into_iter().filter(|e| e.role == role).collect();
+        all.iter().find(|e| e.released()).cloned().or_else(|| all.into_iter().next())
     }
 
-    /// Selected file if installed, else the recommended one, else any installed file.
+    /// Selected file if installed, else the recommended file of the newest version, else any installed file.
     pub fn active(&self, role: ModelRole) -> Option<ActiveModel> {
-        let entry = self.entry_for(role).filter(|e| e.released())?;
+        let entries: Vec<ModelEntry> = self.entries().into_iter().filter(|e| e.role == role && e.released()).collect();
+        let installed: Vec<(&ModelEntry, &ModelFile)> =
+            entries.iter().flat_map(|e| e.files.iter().filter(|f| self.installed(&e.id, &f.file)).map(move |f| (e, f))).collect();
         let selected = self.selected.read().unwrap().get(&role).cloned();
-        let installed: Vec<&ModelFile> = entry.files.iter().filter(|f| self.installed(&entry.id, &f.file)).collect();
-        let pick = selected
-            .and_then(|s| installed.iter().find(|f| f.file == s).copied())
-            .or_else(|| installed.iter().find(|f| f.recommended).copied())
-            .or_else(|| installed.first().copied())?
-            .clone();
-        let path = self.path(&entry.id, &pick.file);
-        Some(ActiveModel { entry, file: pick, path })
+        let (entry, file) = selected
+            .and_then(|(id, file)| installed.iter().find(|(e, f)| e.id == id && f.file == file).copied())
+            .or_else(|| installed.iter().find(|(_, f)| f.recommended).copied())
+            .or_else(|| installed.first().copied())?;
+        let path = self.path(&entry.id, &file.file);
+        Some(ActiveModel { entry: entry.clone(), file: file.clone(), path })
     }
 
     pub fn select(&self, id: &str, file: &str) -> Result<ModelRole> {
@@ -198,8 +235,117 @@ impl ModelStore {
         if !self.installed(id, file) {
             return Err(EngineError::Invalid("该文件尚未下载".into()));
         }
-        self.selected.write().unwrap().insert(entry.role, file.to_string());
+        self.selected.write().unwrap().insert(entry.role, (id.to_string(), file.to_string()));
         Ok(entry.role)
+    }
+
+    pub fn catalog_status(&self) -> CatalogStatus {
+        self.catalog.read().unwrap().clone()
+    }
+
+    /// Re-reads the organisation from Hugging Face. On failure the current catalog stays.
+    pub async fn refresh_catalog(&self) -> Result<()> {
+        self.catalog.write().unwrap().refreshing = true;
+        let result = self.fetch_catalog().await;
+        let mut st = self.catalog.write().unwrap();
+        st.refreshing = false;
+        match result {
+            Ok(entries) => {
+                let mut models = entries;
+                // Keep placeholders for roles the organisation does not publish yet.
+                for fb in &self.fallback.models {
+                    if !models.iter().any(|m| m.role == fb.role) {
+                        models.push(ModelEntry { files: if fb.released() { fb.files.clone() } else { vec![] }, ..fb.clone() });
+                    }
+                }
+                let manifest = Manifest { version: 1, models };
+                if let Ok(json) = serde_json::to_string_pretty(&manifest) {
+                    let _ = std::fs::write(&self.cache_path, json);
+                }
+                *self.manifest.write().unwrap() = manifest;
+                st.source = "huggingface".into();
+                st.fetched_at_ms = Some(crate::history::now_ms());
+                st.error = None;
+                Ok(())
+            }
+            Err(e) => {
+                st.error = Some(e.to_string());
+                Err(e)
+            }
+        }
+    }
+
+    async fn fetch_catalog(&self) -> Result<Vec<ModelEntry>> {
+        #[derive(Deserialize)]
+        struct Repo {
+            id: String,
+        }
+        let url = format!("{}/api/models?author={}&limit=200", self.hf_endpoint, self.org);
+        let repos: Vec<Repo> = self
+            .http
+            .get(url)
+            .timeout(std::time::Duration::from_secs(15))
+            .send()
+            .await
+            .and_then(|r| r.error_for_status())
+            .map_err(|e| EngineError::provider(format!("无法读取 Hugging Face 组织 {}：{e}", self.org)))?
+            .json()
+            .await
+            .map_err(|e| EngineError::provider(format!("Hugging Face 返回格式错误：{e}")))?;
+        let mut out = Vec::new();
+        for r in repos {
+            let Some(mut entry) = parse_repo(&r.id) else { continue };
+            let files = self.repo_files(&r.id).await?;
+            if files.is_empty() {
+                continue;
+            }
+            entry.files = files;
+            out.push(entry);
+        }
+        out.sort_by(|a, b| (a.role as u8, b.version.clone()).cmp(&(b.role as u8, a.version.clone())));
+        Ok(out)
+    }
+
+    async fn repo_files(&self, repo: &str) -> Result<Vec<ModelFile>> {
+        #[derive(Deserialize)]
+        struct Lfs {
+            oid: String,
+            size: u64,
+        }
+        #[derive(Deserialize)]
+        struct Entry {
+            path: String,
+            lfs: Option<Lfs>,
+        }
+        let entries: Vec<Entry> = self
+            .http
+            .get(format!("{}/api/models/{repo}/tree/main", self.hf_endpoint))
+            .timeout(std::time::Duration::from_secs(15))
+            .send()
+            .await
+            .and_then(|r| r.error_for_status())
+            .map_err(|e| EngineError::provider(format!("无法读取 {repo}：{e}")))?
+            .json()
+            .await
+            .map_err(|e| EngineError::provider(format!("{repo} 返回格式错误：{e}")))?;
+        let mut files: Vec<ModelFile> = entries
+            .into_iter()
+            .filter(|e| e.path.to_ascii_lowercase().ends_with(".gguf") && !e.path.contains('/'))
+            .filter(|e| !["imatrix", "mmproj"].iter().any(|x| e.path.to_ascii_lowercase().contains(x)))
+            .map(|e| {
+                let quant = quant_of(&e.path);
+                ModelFile {
+                    recommended: quant == "Q8_0",
+                    note: quant_note(&quant).map(str::to_string),
+                    sha256: e.lfs.as_ref().map(|l| l.oid.clone()),
+                    size: e.lfs.as_ref().map(|l| l.size),
+                    file: e.path,
+                    quant,
+                }
+            })
+            .collect();
+        files.sort_by_key(|f| quant_rank(&f.quant));
+        Ok(files)
     }
 
     pub fn views(&self) -> Vec<ModelView> {
@@ -220,6 +366,7 @@ impl ModelStore {
                     .collect();
                 ModelView {
                     id: e.id,
+                    version: e.version,
                     name: e.name,
                     display_name: e.display_name,
                     role: e.role,
@@ -382,6 +529,73 @@ impl ModelStore {
         for c in self.cancels.iter() {
             c.cancel();
         }
+    }
+}
+
+const QUANT_ORDER: &[&str] = &["Q8_0", "Q6_K", "Q5_K_M", "Q5_K_S", "Q4_K_M", "Q4_K_S", "IQ4_XS", "Q3_K_M", "BF16", "F16"];
+
+fn quant_rank(q: &str) -> usize {
+    QUANT_ORDER.iter().position(|x| *x == q).unwrap_or(QUANT_ORDER.len())
+}
+
+fn quant_note(q: &str) -> Option<&'static str> {
+    match q {
+        "Q8_0" => Some("推荐"),
+        "Q4_K_M" => Some("省内存"),
+        "BF16" | "F16" => Some("原始精度"),
+        _ => None,
+    }
+}
+
+/// "writer-2b-preview-Q4_K_M.gguf" → "Q4_K_M"
+fn quant_of(file: &str) -> String {
+    let stem = file.trim_end_matches(".gguf").trim_end_matches(".GGUF");
+    stem.rsplit(['-', '.']).next().unwrap_or(stem).to_ascii_uppercase()
+}
+
+/// "VNPen/vnpen-writer-2b-v0.1-preview-GGUF" → Writer entry with version "v0.1-preview-GGUF".
+pub fn parse_repo(repo_id: &str) -> Option<ModelEntry> {
+    static RE: once_cell::sync::Lazy<regex::Regex> =
+        once_cell::sync::Lazy::new(|| regex::Regex::new(r"(?i)^vnpen-(writer|realtime)-(\d+(?:\.\d+)?[bm])-(.+-gguf)$").unwrap());
+    let name = repo_id.rsplit('/').next()?;
+    let c = RE.captures(name)?;
+    let role = if c[1].eq_ignore_ascii_case("writer") { ModelRole::Writer } else { ModelRole::Realtime };
+    let label = if role == ModelRole::Writer { "Writer" } else { "Realtime" };
+    let version = c[3].to_string();
+    let id = name[..name.len() - "-GGUF".len()].to_string();
+    Some(ModelEntry {
+        id,
+        name: format!("vnpen-{}", role.as_str()),
+        display_name: format!("{label} {version}"),
+        role,
+        status: "released".into(),
+        params: Some(c[2].to_ascii_uppercase()),
+        repo: Some(repo_id.to_string()),
+        files: vec![],
+        version: Some(version),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_repo_names() {
+        let e = parse_repo("VNPen/vnpen-writer-2b-v0.1-preview-GGUF").unwrap();
+        assert_eq!(e.id, "vnpen-writer-2b-v0.1-preview");
+        assert_eq!(e.display_name, "Writer v0.1-preview-GGUF");
+        assert_eq!(e.params.as_deref(), Some("2B"));
+        assert_eq!(e.role, ModelRole::Writer);
+        assert!(parse_repo("VNPen/vnpen-writer-2b-v0.1-preview").is_none());
+        assert_eq!(parse_repo("VNPen/vnpen-realtime-0.8b-v0.2-GGUF").unwrap().display_name, "Realtime v0.2-GGUF");
+    }
+
+    #[test]
+    fn parses_quants() {
+        assert_eq!(quant_of("writer-2b-preview-Q4_K_M.gguf"), "Q4_K_M");
+        assert_eq!(quant_of("writer-2b-preview-BF16.gguf"), "BF16");
+        assert_eq!(quant_of("qwen2.5-0.5b-instruct-q4_k_m.gguf"), "Q4_K_M");
     }
 }
 

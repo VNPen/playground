@@ -75,7 +75,7 @@ fn random_token() -> String {
 
 pub async fn start(cfg: EngineConfig) -> Result<EngineHandle> {
     let presets = prompts::Presets::load(&cfg.presets_dir)?;
-    let models = models::ModelStore::load(&cfg.models_manifest, cfg.models_dir.clone(), cfg.bundled_models_dir.clone())?;
+    let models = models::ModelStore::load(&cfg.models_manifest, cfg.models_dir.clone(), cfg.bundled_models_dir.clone(), cfg.data_dir.join("catalog.json"))?;
     let sup = supervisor::Supervisor::new(cfg.llama_server_path.clone(), cfg.data_dir.join("logs"), presets.sampling.ctx);
     let token = cfg.token.clone().unwrap_or_else(random_token);
     let state = Arc::new(state::AppState {
@@ -107,6 +107,12 @@ pub async fn start(cfg: EngineConfig) -> Result<EngineHandle> {
     let stop = shutdown.clone();
     tokio::spawn(async move {
         let _ = axum::serve(listener, app).with_graceful_shutdown(async move { stop.cancelled().await }).await;
+    });
+    let catalog = state.models.clone();
+    tokio::spawn(async move {
+        if let Err(e) = catalog.refresh_catalog().await {
+            tracing::warn!("model catalog refresh failed: {e}");
+        }
     });
     tracing::info!("vnpen-engine listening on 127.0.0.1:{port}");
     Ok(EngineHandle { port, token, state, shutdown })
