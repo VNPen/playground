@@ -27,7 +27,9 @@ case "$(uname -s)" in
     command -v cmake >/dev/null || die "缺少 cmake（brew install cmake）"
     xcode-select -p >/dev/null 2>&1 || die "缺少 Xcode Command Line Tools（xcode-select --install）"
     PLATFORM="macos-$(uname -m)" ;;
-  MINGW* | MSYS* | CYGWIN*) PLATFORM="windows-x64" ;;
+  MINGW* | MSYS* | CYGWIN*)
+    command -v cmake >/dev/null || die "缺少 cmake"
+    PLATFORM="windows-x64" ;;
   *) PLATFORM="linux-$(uname -m)" ;;
 esac
 VERSION="$(node -p "require('./package.json').version")"
@@ -62,7 +64,11 @@ fi
 shopt -u nullglob
 
 [ -n "$(ls -A "$OUT")" ] || die "没有找到安装包"
-( cd "$OUT" && shasum -a 256 * > SHA256SUMS.txt )
+if command -v shasum >/dev/null; then
+  ( cd "$OUT" && shasum -a 256 * > SHA256SUMS.txt )
+else
+  ( cd "$OUT" && sha256sum * > SHA256SUMS.txt )
+fi
 
 echo
 ls -lh "$OUT"

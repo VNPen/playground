@@ -5,9 +5,10 @@
 # macOS: builds a static binary from source (single file, Metal shaders embedded), because
 #        the official release links ~10 dylibs via @loader_path and a Tauri sidecar is one file.
 #        Needs Xcode Command Line Tools and cmake.
-# Windows / Linux: downloads the official CPU build (override with LLAMA_VARIANT=vulkan|cuda-12.4
-#        on Windows). The DLLs / .so files go to src-tauri/binaries/lib-<triple>/ and must be
-#        shipped next to the executable (see README, "打包").
+# Windows: builds a static CPU binary from source (static CRT, no OpenMP) so the sidecar is a
+#        single .exe with no DLLs. Needs Visual Studio Build Tools (also required by Tauri) and
+#        cmake; run from Git Bash.
+# Linux: downloads the official CPU build; its .so files go to src-tauri/binaries/lib-<triple>/.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -56,14 +57,28 @@ case "$TRIPLE" in
     codesign -s - -f "$DEST" >/dev/null 2>&1 || true
     ;;
   *windows*)
-    VARIANT="${LLAMA_VARIANT:-cpu}"
-    case "$TRIPLE" in aarch64*) ARCH=arm64 ;; *) ARCH=x64 ;; esac
-    ZIP="llama-$TAG-bin-win-$VARIANT-$ARCH.zip"
-    curl -fL -o "$WORK/$ZIP" "https://github.com/ggml-org/llama.cpp/releases/download/$TAG/$ZIP"
-    rm -rf "$WORK/win" && mkdir -p "$WORK/win" && unzip -q "$WORK/$ZIP" -d "$WORK/win"
-    EXE="$(find "$WORK/win" -name llama-server.exe | head -1)"
+    command -v cmake >/dev/null || { echo "cmake is required" >&2; exit 1; }
+    SRC="$WORK/llama.cpp"
+    if [ ! -d "$SRC/.git" ]; then
+      git clone --depth 1 --branch "$TAG" https://github.com/ggml-org/llama.cpp.git "$SRC"
+    fi
+    cmake -S "$SRC" -B "$WORK/build" \
+      -DBUILD_SHARED_LIBS=OFF \
+      -DCMAKE_POLICY_DEFAULT_CMP0091=NEW \
+      -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded \
+      -DGGML_NATIVE=OFF \
+      -DGGML_OPENMP=OFF \
+      -DLLAMA_CURL=OFF \
+      -DLLAMA_OPENSSL=OFF \
+      -DLLAMA_BUILD_TESTS=OFF \
+      -DLLAMA_BUILD_EXAMPLES=OFF \
+      -DLLAMA_BUILD_SERVER=ON \
+      -DLLAMA_BUILD_UI=OFF \
+      -DLLAMA_USE_PREBUILT_UI=OFF
+    cmake --build "$WORK/build" --config Release --target llama-server -j "${NUMBER_OF_PROCESSORS:-4}"
+    EXE="$(find "$WORK/build" -name llama-server.exe | head -1)"
+    [ -n "$EXE" ] || { echo "llama-server.exe not found after build" >&2; exit 1; }
     cp "$EXE" "$DEST"
-    mkdir -p "$OUT/lib-$TRIPLE" && cp "$(dirname "$EXE")"/*.dll "$OUT/lib-$TRIPLE/"
     ;;
   *linux*)
     case "$TRIPLE" in aarch64*) ARCH=arm64 ;; *) ARCH=x64 ;; esac
