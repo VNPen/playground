@@ -252,6 +252,15 @@ VNPEN_TEST_GGUF=/path/to/Qwen3.5-0.8B-Q4_K_M.gguf cargo test --manifest-path src
 
 无边框窗口：macOS 使用透明标题栏（`titleBarStyle: Overlay`，保留红绿灯，位于侧栏顶部），Windows / Linux 关闭系统装饰（`tauri.windows.conf.json`、`tauri.linux.conf.json`），由应用在标题栏右侧绘制最小化 / 最大化 / 关闭按钮。顶栏和侧栏顶部可拖动窗口。
 
+## 图标
+
+源文件在 `src-tauri/icons/source/`，两个版本：
+
+- `icon-macos.svg`：按 Apple 图标模板，1024 画布内 824×824 主体、连续曲率圆角（r≈185）、柔和投影，生成 `icon.icns`。
+- `icon-windows.svg`：接近满幅的圆角矩形（圆角 12.5%），生成 `icon.ico` 与各尺寸 PNG（Linux 同用）。
+
+修改后重新生成：`pnpm tauri icon src-tauri/icons/source/icon-macos.svg -o <临时目录>` 取 `icon.icns`，对 Windows 版取 `icon.ico` 与 PNG，复制到 `src-tauri/icons/`。
+
 ## 打包
 
 - 安装包不含模型，首次启用时下载；目标体积 < 100 MB（macOS 静态 llama-server 约 17 MB）。

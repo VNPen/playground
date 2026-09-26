@@ -9,9 +9,9 @@ import { Badge, Dot, Spinner, Tip } from "../common/ui";
 
 export function Logo() {
   return (
-    <div className="flex items-center gap-2 px-1" aria-label="VNPen Playground">
-      <span className="text-[22px] font-extrabold leading-none tracking-tight text-brand">VNPen</span>
-      <span className="rounded-md bg-brand px-1.5 py-1 text-[11px] font-semibold leading-none tracking-wide text-on-brand">Playground</span>
+    <div className="flex items-center gap-1.5" aria-label="VNPen Playground">
+      <span className="text-[19px] font-extrabold leading-none tracking-tight text-brand">VNPen</span>
+      <span className="rounded-[5px] bg-brand px-1.5 py-[3px] text-[10px] font-semibold leading-none tracking-wide text-on-brand">Playground</span>
     </div>
   );
 }
