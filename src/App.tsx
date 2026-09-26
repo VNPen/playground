@@ -20,11 +20,13 @@ export default function App() {
     useApp.getState().init();
   }, []);
 
+  // Poll faster while a download or model load is in progress so the task card stays live.
+  const busy = useApp((s) => s.models.some((m) => m.files.some((f) => f.download && f.download.state !== "failed")) || s.procs.some((p) => p.phase.phase === "starting"));
   useEffect(() => {
     if (!engine?.port) return;
-    const t = window.setInterval(() => useApp.getState().refreshStatus(), 3000);
+    const t = window.setInterval(() => useApp.getState().refreshStatus(), busy ? 1000 : 3000);
     return () => window.clearInterval(t);
-  }, [engine?.port]);
+  }, [engine?.port, busy]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

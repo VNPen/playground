@@ -3,6 +3,7 @@ import { Cpu, Download, Globe, HardDrive, Plus, RefreshCw, ShieldCheck } from "l
 import { useState } from "react";
 import { api } from "../../api/client";
 import { MAC_OVERLAY } from "../../lib/platform";
+import { TaskCard } from "./TaskCard";
 import { hasInstalled, useApp } from "../../stores/app";
 import { mb } from "../../lib/format";
 import { Badge, Dot, Spinner, Tip } from "../common/ui";
@@ -214,6 +215,7 @@ export function LeftSidebar() {
       <div className="scroll-thin min-h-0 flex-1 overflow-y-auto">
         <ModelList />
       </div>
+      <TaskCard />
       <EngineCard />
       <Tip label="只保存设置（主题、采样参数、外部提供者）；对话与剧本只在内存中，退出即清空" side="top">
         <div className="flex items-center gap-1.5 px-1 text-xs text-muted">

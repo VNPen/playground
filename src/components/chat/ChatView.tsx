@@ -185,7 +185,7 @@ function Composer() {
           {mode === "brief" && (
             <label className="flex shrink-0 items-center gap-2 whitespace-nowrap text-xs text-fg2">
               行数
-              <Input type="number" min={0} max={80} value={lengthLines || ""} placeholder="不限" onChange={(e) => setLengthLines(Math.max(0, Math.min(80, Number(e.target.value) || 0)))} className="h-7 w-20" />
+              <Input type="number" min={0} max={80} value={lengthLines || ""} placeholder="不限" onChange={(e) => setLengthLines(Math.max(0, Math.min(80, Number(e.target.value) || 0)))} className="h-7 w-24" />
             </label>
           )}
         </div>

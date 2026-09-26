@@ -12,7 +12,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLBut
     <button
       ref={ref}
       className={clsx(
-        "inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
         size === "sm" ? "h-7 px-2.5 text-xs" : "h-8 px-3 text-[13px]",
         variant === "primary" && "bg-brand text-on-brand hover:bg-brand-hover",
         variant === "secondary" && "border border-line bg-card text-fg hover:border-line-strong hover:bg-sunken",
