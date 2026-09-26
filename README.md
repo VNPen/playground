@@ -1,6 +1,6 @@
 # VNPen Playground
 
-VNPen 模型与《前端 ↔ 任务层接口合同 v1》的试验台。任务层（`src-tauri/src/engine/`，crate `vnpen-engine`）按合同实现本地 HTTP/SSE 接口，VNPen Desktop 可直接复用；界面（`src/`）只通过这些接口工作。Playground 只保存设置，不保存对话和剧本。
+在 Playground 中测试模型回复，Playground仅供预览使用，实际创作请移步至**VNPen Desktop**
 
 ## 启动
 
@@ -16,7 +16,7 @@ pnpm tauri dev
 
 ## 模型
 
-模型列表读取自 Hugging Face 组织 [VNPen](https://huggingface.co/VNPen) 下的 `vnpen-<writer|realtime>-<参数量>-<版本>-GGUF` 仓库，每个 `.gguf` 文件是一个可下载的量化版本。任务层自己下载（断点续传、sha256 校验）。离线时使用缓存或 `src-tauri/models.json`。realtime 模型尚未发布。
+模型列表读取自 Hugging Face 组织 [VNPen](https://huggingface.co/VNPen) 下的 `vnpen-<writer|realtime>-<参数量>-<版本>-GGUF` 仓库，每个 `.gguf` 文件是一个可下载的量化版本。任务层自己下载（断点续传、sha256 校验）。离线时使用缓存或 `src-tauri/models.json`。
 
 ## System Prompt
 

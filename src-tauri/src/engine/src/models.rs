@@ -159,7 +159,7 @@ impl ModelStore {
             selected: RwLock::new(HashMap::new()),
             downloads: DashMap::new(),
             cancels: DashMap::new(),
-            http: reqwest::Client::builder().user_agent("vnpen-playground/0.1").build().unwrap(),
+            http: reqwest::Client::builder().user_agent(concat!("vnpen-engine/", env!("CARGO_PKG_VERSION"))).build().unwrap(),
             hf_endpoint: std::env::var("HF_ENDPOINT").unwrap_or_else(|_| "https://huggingface.co".into()),
         }))
     }
