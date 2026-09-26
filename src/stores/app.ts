@@ -5,7 +5,7 @@ import { loadSetting, saveSetting } from "../lib/persist";
 
 export type Tab = "chat" | "realtime";
 export type Theme = "system" | "light" | "dark";
-export type SettingsTab = "models" | "providers" | "system";
+export type SettingsTab = "models" | "providers" | "system" | "benchmark";
 
 export interface Banner {
   error: ErrorBody;

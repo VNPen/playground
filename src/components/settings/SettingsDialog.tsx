@@ -1,6 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import clsx from "clsx";
-import { AlertTriangle, Box, Cloud, Download, FolderOpen, HardDrive, Lock, Plus, RefreshCw, Trash2, X } from "lucide-react";
+import { AlertTriangle, Box, Cloud, Download, Gauge, FolderOpen, HardDrive, Lock, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api, ApiError, isTauri } from "../../api/client";
 import type { ExternalConfig, ModelFileView, ModelView } from "../../api/contract";
@@ -8,11 +8,13 @@ import { bytes, time } from "../../lib/format";
 import { useApp, type SettingsTab } from "../../stores/app";
 import { Badge, Button, Input, Segmented, Spinner, Switch, TextArea } from "../common/ui";
 import { openExternal } from "../layout/TopBar";
+import { BenchmarkTab } from "./BenchmarkTab";
 
 const TABS: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
   { id: "models", label: "模型", icon: <Box className="h-4 w-4" /> },
   { id: "providers", label: "提供者", icon: <Cloud className="h-4 w-4" /> },
   { id: "system", label: "System Prompt", icon: <Lock className="h-4 w-4" /> },
+  { id: "benchmark", label: "性能测试", icon: <Gauge className="h-4 w-4" /> },
 ];
 
 function errText(e: unknown) {
@@ -499,6 +501,7 @@ export function SettingsDialog() {
               {tab === "models" && <ModelsTab />}
               {tab === "providers" && <ProvidersTab />}
               {tab === "system" && <SystemTab />}
+              {tab === "benchmark" && <BenchmarkTab />}
             </div>
           </div>
         </Dialog.Content>

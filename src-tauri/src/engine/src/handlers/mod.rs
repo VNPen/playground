@@ -1,3 +1,4 @@
+pub mod benchmark;
 pub mod generate;
 pub mod playground;
 pub mod proofread;
@@ -110,24 +111,7 @@ pub async fn status(State(st): St) -> Json<StatusResponse> {
         });
     }
 
-    let hardware = {
-        let mut sys = st.sys.lock().unwrap();
-        sys.refresh_memory();
-        sys.refresh_cpu_usage();
-        let pids = st.sup.pids();
-        sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
-        let rss: u64 = pids.iter().filter_map(|p| sys.process(sysinfo::Pid::from_u32(*p))).map(|p| p.memory()).sum();
-        let total = sys.total_memory() / 1_048_576;
-        let apple = cfg!(all(target_os = "macos", target_arch = "aarch64"));
-        Hardware {
-            gpu: if apple { "Apple Silicon (Metal)".into() } else { "auto".into() },
-            vram_mb: if apple { total } else { 0 },
-            ram_mb: total,
-            ram_used_mb: sys.used_memory() / 1_048_576,
-            engine_rss_mb: rss / 1_048_576,
-            cpu_percent: sys.global_cpu_usage(),
-        }
-    };
+    let hardware = hardware(&st);
 
     Json(StatusResponse {
         engine: EngineStatus {
@@ -141,6 +125,25 @@ pub async fn status(State(st): St) -> Json<StatusResponse> {
         hardware,
         meta: Meta { model: String::new(), provider: "vnpen".into(), elapsed_ms: started.elapsed().as_millis() as u64, ..Default::default() },
     })
+}
+
+pub fn hardware(st: &AppState) -> Hardware {
+    let mut sys = st.sys.lock().unwrap();
+    sys.refresh_memory();
+    sys.refresh_cpu_usage();
+    let pids = st.sup.pids();
+    sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+    let rss: u64 = pids.iter().filter_map(|p| sys.process(sysinfo::Pid::from_u32(*p))).map(|p| p.memory()).sum();
+    let total = sys.total_memory() / 1_048_576;
+    let apple = cfg!(all(target_os = "macos", target_arch = "aarch64"));
+    Hardware {
+        gpu: if apple { "Apple Silicon (Metal)".into() } else { "auto".into() },
+        vram_mb: if apple { total } else { 0 },
+        ram_mb: total,
+        ram_used_mb: sys.used_memory() / 1_048_576,
+        engine_rss_mb: rss / 1_048_576,
+        cpu_percent: sys.global_cpu_usage(),
+    }
 }
 
 // ---------- /continue ----------

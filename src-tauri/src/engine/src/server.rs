@@ -62,6 +62,7 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/_playground/engine", get(playground::engine))
         .route("/_playground/engine/restart", post(playground::restart))
         .route("/_playground/presets", get(playground::presets))
+        .route("/_playground/benchmark", post(handlers::benchmark::benchmark))
         .route_layer(middleware::from_fn_with_state(state.clone(), auth))
         .with_state(state);
 

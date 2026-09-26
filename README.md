@@ -244,6 +244,10 @@ VNPEN_TEST_GGUF=/path/to/Qwen3.5-0.8B-Q4_K_M.gguf cargo test --manifest-path src
 - 引擎状态分别显示 writer / realtime 等进程；错误横幅按错误码给出重试 / 去下载；各处空状态；图标按钮均有 aria-label 与提示。
 - 调用历史为 Opencode 式小卡片（tokens、首字、速度、耗时），点开可看渲染后 Prompt、原始输出、解析结果与 Raw JSON。
 
+## 性能测试
+
+设置 → 性能测试：选择本地 Writer、本地 GGUF 或外部接口，每项重复 1–3 次取平均。固定三组用例（提示 128 / 512 / 2048 tokens，各生成 128 tokens），给出提示处理速度、生成速度、首字延迟和冷启动加载耗时，并记录模型、llama.cpp 版本与硬件，可复制为 Markdown 表格。本地模型通过 llama-server `/completion` 以 token id 作为提示、`ignore_eos`、关闭提示缓存、贪心采样运行，数值取自 llama.cpp 自身计时；外部接口只能从外部计时，提示处理速度为估算。接口：`POST /v1/vnpen/_playground/benchmark`（SSE：`stage` / `env` / `case` / `done` / `error`）。进行中的测试同时显示在侧栏任务卡片中。
+
 ## 窗口
 
 无边框窗口：macOS 使用透明标题栏（`titleBarStyle: Overlay`，保留红绿灯，位于侧栏顶部），Windows / Linux 关闭系统装饰（`tauri.windows.conf.json`、`tauri.linux.conf.json`），由应用在标题栏右侧绘制最小化 / 最大化 / 关闭按钮。顶栏和侧栏顶部可拖动窗口。
