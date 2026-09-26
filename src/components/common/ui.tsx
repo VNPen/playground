@@ -174,12 +174,12 @@ export function Switch({ checked, onChange, label, disabled }: { checked: boolea
   );
 }
 
-export function Empty({ icon, title, hint }: { icon?: ReactNode; title: string; hint?: ReactNode }) {
+export function Empty({ icon, title, hint, wide }: { icon?: ReactNode; title: string; hint?: ReactNode; wide?: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center gap-2 px-6 py-8 text-center">
       {icon && <div className="text-muted">{icon}</div>}
       <div className="text-[13px] font-medium text-fg2">{title}</div>
-      {hint && <div className="max-w-72 text-xs leading-5 text-muted">{hint}</div>}
+      {hint && <div className={clsx("text-xs leading-5 text-muted", wide ? "whitespace-nowrap" : "max-w-72")}>{hint}</div>}
     </div>
   );
 }
