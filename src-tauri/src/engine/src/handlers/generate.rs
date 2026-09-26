@@ -11,7 +11,7 @@ use futures::{Stream, StreamExt};
 use serde_json::{json, Value};
 use tokio_util::sync::CancellationToken;
 
-use crate::contract::{Block, BlockKind, DeltaEvent, DiffEntry, DoneEvent, DoneKind, Line, LineEvent, Meta};
+use crate::contract::{Block, BlockKind, DeltaEvent, DiffEntry, DoneEvent, DoneKind, Line, LineEvent, Meta, ProgressEvent};
 use crate::error::{EngineError, Result};
 use crate::history::{now_ms, CallRecord};
 use crate::parsers::{kind_for_speaker, parse_script_line, ScriptValidator};
@@ -92,6 +92,7 @@ struct Assembler {
 }
 
 const CHAT_SPEAKER_MAX: usize = 8;
+const PROGRESS_EVERY: std::time::Duration = std::time::Duration::from_millis(250);
 
 fn looks_like_prose(partial: &str) -> bool {
     let t = partial.trim_start();
@@ -330,6 +331,9 @@ pub fn sse(state: Arc<AppState>, p: Prepared) -> Sse<impl Stream<Item = std::res
                 guard.rec().raw_output.push_str("\n----- retry -----\n");
             }
             let mut asm = Assembler::new(job.mode.clone(), &rid);
+            let mut produced = 0u64;
+            let mut first_token: Option<Instant> = None;
+            let mut last_progress = Instant::now();
             let upstream = match state.client.stream(&job.target, body.clone()).await {
                 Ok(s) => s,
                 Err(e) => {
@@ -366,8 +370,16 @@ pub fn sse(state: Arc<AppState>, p: Prepared) -> Sse<impl Stream<Item = std::res
                     Some(Ok(Chunk::Text(t))) => {
                         ttft.get_or_insert(started.elapsed().as_millis() as u64);
                         guard.rec().raw_output.push_str(&t);
+                        produced += 1;
+                        let first = *first_token.get_or_insert_with(Instant::now);
                         for e in asm.feed(&t) {
                             yield Ok(e);
+                        }
+                        if last_progress.elapsed() >= PROGRESS_EVERY {
+                            last_progress = Instant::now();
+                            let secs = first.elapsed().as_secs_f64();
+                            let tps = if secs > 0.0 && produced > 1 { (produced - 1) as f64 / secs } else { 0.0 };
+                            yield Ok(ev("progress", &ProgressEvent { tokens_out: produced, tps: (tps * 10.0).round() / 10.0, elapsed_ms: started.elapsed().as_millis() as u64 }));
                         }
                         if asm.reached_max() {
                             stopped_early = true;

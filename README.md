@@ -177,7 +177,7 @@ let handle = vnpen_engine::start(vnpen_engine::EngineConfig {
 
 ## 接口速查
 
-所有请求带 `X-VNPen-Token`，所有响应带 `X-VNPen-Contract: 1`。生成类接口返回 SSE（`line` / `delta` / `done` / `error`）；参数错误等预检失败返回 JSON 错误体与对应 HTTP 状态。
+所有请求带 `X-VNPen-Token`，所有响应带 `X-VNPen-Contract: 1`。生成类接口返回 SSE（`line` / `delta` / `done` / `error`，另外新增 `progress` 事件：`{tokens_out, tps, elapsed_ms}`，生成中约每 250 ms 一次，客户端可忽略）；参数错误等预检失败返回 JSON 错误体与对应 HTTP 状态。
 
 ```bash
 curl -s -H 'X-VNPen-Token: dev' http://127.0.0.1:7730/v1/vnpen/status

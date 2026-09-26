@@ -14,6 +14,7 @@ export interface Ghost {
 }
 
 export interface RewriteState {
+  progress?: { tokens_out: number; tps: number };
   mode: "light" | "heavy";
   rowIds: string[];
   lines: LineEvent[];
@@ -347,6 +348,10 @@ export const useEditor = create<EditorState>((set, get) => ({
         onLine: (e) => {
           const r = get().rewrite;
           if (rewriteHandle === handle && r) set({ rewrite: { ...r, lines: [...r.lines, e] } });
+        },
+        onProgress: (p) => {
+          const r = get().rewrite;
+          if (rewriteHandle === handle && r) set({ rewrite: { ...r, progress: p } });
         },
       },
     );

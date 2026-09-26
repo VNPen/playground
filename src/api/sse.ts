@@ -1,9 +1,10 @@
-import type { DeltaEvent, DoneEvent, ErrorBody, LineEvent } from "./contract";
+import type { DeltaEvent, DoneEvent, ErrorBody, LineEvent, ProgressEvent } from "./contract";
 import { ApiError, headers, networkError, notifySettled, toApiError, url } from "./client";
 
 export interface SseHandlers {
   onLine?: (e: LineEvent) => void;
   onDelta?: (e: DeltaEvent) => void;
+  onProgress?: (e: ProgressEvent) => void;
 }
 
 export interface SseHandle {
@@ -51,6 +52,7 @@ export function postSse(path: string, body: Record<string, unknown>, h: SseHandl
           const payload = JSON.parse(data.join("\n"));
           if (event === "line") h.onLine?.(payload as LineEvent);
           else if (event === "delta") h.onDelta?.(payload as DeltaEvent);
+          else if (event === "progress") h.onProgress?.(payload as ProgressEvent);
           else if (event === "done") return payload as DoneEvent;
           else if (event === "error") throw new ApiError(payload as ErrorBody, 200);
         }

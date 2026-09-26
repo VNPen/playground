@@ -173,6 +173,11 @@ function RewritePreview({ order, pov }: { order: string[]; pov: string }) {
               <Wand2 className="h-4 w-4 text-brand" />
               {rw.mode === "light" ? "轻度改写" : "重度改写"} · 预览
               {rw.loading && <Spinner className="text-brand" />}
+              {rw.loading && rw.progress && (
+                <span className="font-mono text-xs font-normal tabular-nums text-muted">
+                  {rw.progress.tokens_out} tokens · {rw.progress.tps.toFixed(1)} tok/s
+                </span>
+              )}
             </Dialog.Title>
             <Dialog.Description className="text-xs text-muted">{rw.mode === "light" ? "realtime 模型，保持行数" : "writer 模型，可调整节奏"}</Dialog.Description>
           </div>

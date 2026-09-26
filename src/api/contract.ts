@@ -60,6 +60,13 @@ export interface DeltaEvent {
   text: string;
 }
 
+/** Live stats during generation (addition to the contract; safe to ignore). */
+export interface ProgressEvent {
+  tokens_out: number;
+  tps: number;
+  elapsed_ms: number;
+}
+
 export type DoneKind = "script" | "prose" | "mixed";
 
 export interface Block {

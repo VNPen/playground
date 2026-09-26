@@ -93,6 +93,16 @@ function AssistantView({ m }: { m: AssistantMsg }) {
         ),
       )}
       {m.streaming && (empty ? <div className="text-[13px] text-muted">生成中<span className="caret-blink" /></div> : <span className="caret-blink" />)}
+      {m.streaming && (
+        <div className="mt-2 flex items-center gap-3 font-mono text-xs tabular-nums text-muted" aria-live="off">
+          <span className="flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />
+            {m.progress ? `${m.progress.tokens_out} tokens` : "等待首字…"}
+          </span>
+          {m.progress && m.progress.tps > 0 && <span>{m.progress.tps.toFixed(1)} tok/s</span>}
+          {m.progress && <span>{(m.progress.elapsed_ms / 1000).toFixed(1)} s</span>}
+        </div>
+      )}
       {m.stopped && <div className="mt-1 text-xs text-muted">已停止</div>}
       {m.error && (
         <div className="mt-1 rounded-lg bg-err-soft px-3 py-2 text-[13px] text-err">

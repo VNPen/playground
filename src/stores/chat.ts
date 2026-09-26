@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Block, ChatMessage, ErrorBody, Line, LineEvent, Meta } from "../api/contract";
+import type { Block, ChatMessage, ErrorBody, Line, LineEvent, Meta, ProgressEvent } from "../api/contract";
 import { postSse, type SseHandle } from "../api/sse";
 import { systemOverrideFor, toErrorBody, useApp } from "./app";
 import { samplingFor } from "./params";
@@ -19,6 +19,8 @@ export interface AssistantMsg {
   blocks: Block[];
   streaming: boolean;
   meta?: Meta;
+  /** Live tokens / speed while streaming. */
+  progress?: ProgressEvent;
   error?: ErrorBody;
   requestId?: string;
   provider: string;
@@ -84,6 +86,7 @@ export const useChat = create<ChatState>((set, get) => {
     if (userMsg.mode === "brief") {
       handle = postSse("/brief", { ...common, request: userMsg.content, length_lines: lengthLines || undefined }, {
         onLine: (e) => patch(aid, (m) => ({ blocks: appendLine(m.blocks, lineFromEvent(e, aid)) })),
+        onProgress: (progress) => patch(aid, () => ({ progress })),
       });
     } else {
       const messages: ChatMessage[] = history
@@ -93,6 +96,7 @@ export const useChat = create<ChatState>((set, get) => {
       handle = postSse("/chat", { ...common, messages }, {
         onLine: (e) => patch(aid, (m) => ({ blocks: appendLine(m.blocks, lineFromEvent(e, aid)) })),
         onDelta: (e) => patch(aid, (m) => ({ blocks: appendProse(m.blocks, e.text) })),
+        onProgress: (progress) => patch(aid, () => ({ progress })),
       });
     }
     patch(aid, () => ({ requestId: handle.requestId }));

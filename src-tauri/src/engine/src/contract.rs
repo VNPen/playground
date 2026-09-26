@@ -126,6 +126,15 @@ pub struct DeltaEvent {
     pub text: String,
 }
 
+/// Addition to §1: live generation stats, sent roughly every 250 ms. Clients may ignore it.
+#[derive(Debug, Clone, Serialize)]
+pub struct ProgressEvent {
+    /// Tokens generated so far in this attempt (one streamed chunk ≈ one token).
+    pub tokens_out: u64,
+    pub tps: f64,
+    pub elapsed_ms: u64,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DoneKind {
